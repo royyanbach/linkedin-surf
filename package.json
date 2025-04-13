@@ -1,4 +1,8 @@
 {
-  "name": "linkedin-surf",
+  "name": "linkedin-job-filter",
+  "version": "1.0.0",
+  "description": "LinkedIn job search automation for Frontend roles in Indonesia",
+  "author": "Your Name",
+  "license": "MIT",
   "packageManager": "yarn@4.1.1"
 }

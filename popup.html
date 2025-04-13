@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LinkedIn Job Filter</title>
+  <style>
+    body {
+      width: 350px;
+      padding: 15px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #333;
+    }
+
+    h1 {
+      color: #0a66c2;
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    .instructions {
+      font-size: 14px;
+      line-height: 1.4;
+      margin-bottom: 15px;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #666;
+      font-style: italic;
+      margin-top: 15px;
+    }
+
+    button {
+      background-color: #0a66c2;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #004182;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .section {
+      margin-bottom: 15px;
+    }
+
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .filter-keywords {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 5px;
+    }
+
+    .keyword {
+      background-color: #eef3f8;
+      border-radius: 12px;
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <h1>LinkedIn Job Filter</h1>
+
+  <div class="instructions">
+    This extension helps you filter job listings on LinkedIn for specified roles and locations.
+  </div>
+
+  <div class="section">
+    <div class="section-title">Job Role</div>
+    <input type="text" id="jobRole" placeholder="E.g., frontend, fullstack, react" class="text-input">
+    <div class="filter-keywords">Comma separated keywords</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Job Location</div>
+    <input type="text" id="jobLocation" placeholder="E.g., Indonesia, Jakarta" class="text-input">
+    <div class="filter-keywords">Comma separated locations</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Max Jobs</div>
+    <input type="number" id="maxJobs" placeholder="Number of jobs to process" value="25" min="1" max="100" class="text-input">
+    <div class="filter-keywords">Maximum number of jobs to process</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Max Pages</div>
+    <input type="number" id="maxPages" placeholder="Number of pages to process" value="3" min="1" max="10" class="text-input">
+    <div class="filter-keywords">Maximum number of pages to process</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">OpenAI API Key</div>
+    <input type="password" id="apiKey" placeholder="Enter your OpenAI API key" class="text-input">
+    <div class="filter-keywords">Required for AI-powered job matching</div>
+  </div>
+
+  <button id="startButton">Start Filtering Jobs</button>
+
+  <div class="note">
+    Note: This will work only on LinkedIn job search pages.
+    Results will be exported as CSV.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
