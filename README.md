@@ -34,13 +34,17 @@ To address these issues, I created this extension. It automatically scrolls thro
 
 1. Go to a LinkedIn job search page (e.g., `https://www.linkedin.com/jobs/search/...`).
 2. Click on the extension icon in your browser toolbar.
-3. Input your preference
-  ![Popup](./popup.jpg)
+3. Input your preference:
+
+   ![Popup](./popup.jpg)
+
 4. Click "Start Filtering Jobs" in the popup.
 5. Wait while the extension scrolls through and processes all job listings.
 6. When finished, a CSV file with the filtered jobs will be downloaded automatically.
-  Example csv:
-  ![Generated CSV](./generated-csv.jpg)
+
+   Example CSV:
+
+   ![Generated CSV](./generated-csv.jpg)
 
 ## Configuration
 
