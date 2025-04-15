@@ -23,6 +23,7 @@ h3 {
 }
 
 p {
+  margin-top: 0;
   margin-bottom: 1rem;
 }
 
@@ -151,31 +152,50 @@ a:hover {
   max-width: 100%;
 }
 
-/* Contact Section */
-.contact {
-  padding: 60px 0;
-  text-align: center;
+/* Privacy Policy Section */
+.privacy-policy {
+    padding: 60px 0;
+    background-color: #f8f9fa; /* Slightly different background */
 }
 
-.contact h2 {
-  font-size: 2rem;
-  margin-bottom: 20px;
+.privacy-policy h2 {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2rem;
 }
 
-.contact p {
-  margin-bottom: 25px;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+.privacy-policy .container {
+    max-width: 800px; /* Slightly narrower for text content */
 }
 
-.cta-button.secondary {
-  background-color: #6c757d;
-  color: #fff;
+.privacy-policy h3 {
+    font-size: 1.5rem;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: #343a40;
 }
 
-.cta-button.secondary:hover {
-  background-color: #5a6268;
+.privacy-policy h4 {
+    font-size: 1.2rem;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.privacy-policy p,
+.privacy-policy ul {
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.privacy-policy ul {
+    list-style: disc;
+    padding-left: 20px;
+}
+
+.privacy-policy li {
+    margin-bottom: 5px;
 }
 
 /* Footer */
