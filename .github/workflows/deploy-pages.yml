@@ -1,0 +1,41 @@
+name: Deploy static content to Pages
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create deployment directory
+        run: mkdir _site
+      - name: Copy files to deployment directory
+        run: |
+          cp index.html _site/index.html
+          cp style.css _site/style.css
+          cp popup.jpg _site/popup.jpg || echo "popup.jpg not found, skipping."
+          cp generated-csv.jpg _site/generated-csv.jpg || echo "generated-csv.jpg not found, skipping."
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './_site'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
