@@ -2,9 +2,13 @@
   "manifest_version": 3,
   "name": "LinkedIn Job Filter",
   "version": "1.0",
-  "description": "Automates job search on LinkedIn by filtering and exporting results",
-  "permissions": ["activeTab", "storage", "downloads"],
-  "host_permissions": ["https://www.linkedin.com/jobs/search*"],
+  "description": "Automates job search on LinkedIn by filtering and exporting results to Google Sheets",
+  "permissions": ["activeTab", "storage", "downloads", "identity"],
+  "host_permissions": [
+    "https://www.linkedin.com/jobs/search*",
+    "https://www.linkedin.com/jobs/collections*",
+    "https://sheets.googleapis.com/*"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -19,7 +23,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.linkedin.com/jobs/search*"],
+      "matches": ["https://www.linkedin.com/jobs/search*", "https://www.linkedin.com/jobs/collections*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
@@ -28,5 +32,12 @@
     "16": "images/icon16.png",
     "48": "images/icon48.png",
     "128": "images/icon128.png"
+  },
+  "oauth2": {
+    "client_id": "3065938440-i8mld86i7cap28nt9lmt7od1vi1ti76g.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
   }
 }

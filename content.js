@@ -1,10 +1,13 @@
+const API_TIMEOUT = 5000;
+
 // Configuration
 let config = {
+  openaiApiKey: '',
   // Title filters (case insensitive)
-  includeKeywords: ['frontend', 'front-end', 'front end', 'fullstack', 'full-stack', 'full stack', 'web developer', 'web engineer', 'javascript', 'react', 'vue', 'angular', 'typescript', 'senior', 'lead'],
-  excludeKeywords: ['designer', 'mechanical', 'civil', 'quality assurance', 'qa engineer', 'devops', 'intern', 'backend only', 'back-end only'],
+  includeKeywords: [],
+  excludeKeywords: [],
   // Location filters
-  locationRequirements: ['indonesia'],
+  locationRequirements: [],
   // locationRequirements: {
   //   mustContain: ['indonesia'],
   //   exclude: ['remote', 'hybrid']
@@ -12,20 +15,37 @@ let config = {
   // Max jobs to process per page
   maxJobs: 25,
   // Max pages to process
-  maxPages: 3
+  maxPages: 3,
+  // API rate limiting
+  apiRateLimit: 1000,  // Max requests per minute to avoid overloading
+  apiTokensPerMinute: 1000000,  // Max tokens per minute to avoid overloading
+  apiCooldown: 20000,  // Cooldown in ms between API batches
+  csrfToken: '',
+  pageInstance: '',
 };
 
-// Store scraped jobs
-let scrapedJobs = [];
+// Track processed jobs to avoid duplicates
 let processedJobIds = new Set();
 let isRunning = false;
-let lastProcessedIndex = 0; // Track the last processed job index
+let jobsProcessedCount = 0;
+let jobsMatchedCount = 0;
+let jobsProcessedThisPage = 0;
+let isFirstPage = true; // Track if we're on the first page
+let apiRequestsInLastMinute = 0;
+let tokensUsedInLastMinute = 0;
+let lastApiRequestTime = 0;
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'startScraping' && !isRunning) {
     isRunning = true;
+    if (message.apiKey) {
+      config.openaiApiKey = message.apiKey;
+    }
     startScraping();
+    sendResponse({ success: true });
+  } else if (message.action === 'showNotification') {
+    showNotification(message.message);
     sendResponse({ success: true });
   }
   return true;
@@ -33,10 +53,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+function getCookieValueByName(name) {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split('=');
+    if (cookieName === name) {
+      return cookieValue;
+    }
+  }
+  return null;
+}
+
 // Load configuration from storage
 async function loadConfig() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['jobRole', 'jobLocation', 'maxJobs', 'maxPages'], (result) => {
+    chrome.storage.local.get(['jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance'], (result) => {
       if (result.jobRole) {
         config.includeKeywords = result.jobRole.split(',').map(keyword => keyword.trim());
       }
@@ -54,6 +85,10 @@ async function loadConfig() {
         config.maxPages = parseInt(result.maxPages, 10) || 3;
       }
 
+      if (result.pageInstance) {
+        config.pageInstance = result.pageInstance;
+      }
+
       resolve();
     });
   });
@@ -61,16 +96,38 @@ async function loadConfig() {
 
 // Start the scraping process
 async function startScraping() {
-  console.log('LinkedIn Job Filter: Starting to scrape jobs...');
+  try {
+    // Only reset matched jobs at the beginning of the entire scraping process
+    chrome.runtime.sendMessage({ action: 'resetMatchedJobs' }, response => {
+      // If sheet creation failed, show error and abort
+      if (response && !response.success) {
+        showNotification(`Failed to create Google Sheet: ${response.error}`);
+        isRunning = false;
+        return;
+      }
 
+      // Continue with scraping if sheet was created successfully
+      continueWithScraping();
+    });
+  } catch (error) {
+    console.error('Error during scraping setup:', error);
+    showNotification('An error occurred while setting up scraping. Check console for details.');
+    isRunning = false;
+  }
+}
+
+async function continueWithScraping() {
   try {
     // Load config from storage
     await loadConfig();
 
+    config.csrfToken = getCookieValueByName('JSESSIONID');
+
     // Reset data
-    scrapedJobs = [];
     processedJobIds = new Set();
-    lastProcessedIndex = 0; // Reset the index counter
+    jobsProcessedCount = 0;
+    jobsMatchedCount = 0;
+    isFirstPage = true;
 
     // Show notification to user
     showNotification('Starting to scrape LinkedIn jobs. Please do not navigate away from this page.');
@@ -82,28 +139,28 @@ async function startScraping() {
       showNotification(`Processing page ${currentPage} of ${config.maxPages}`);
 
       // Get all job cards on the page
-      await scrollToLoadAllJobs();
+      // await scrollToLoadAllJobsSimple();
 
       await sleep(500);
 
+      // Reset counter for this page
+      jobsProcessedThisPage = 0;
+
       // Process job cards
-      const jobCards = document.querySelectorAll('.job-card-container');
-      console.log(`Found ${jobCards.length} job cards on page ${currentPage}, processing...`);
+      const jobCards = Array.from(document.querySelectorAll('.scaffold-layout__list-item'));
 
       if (jobCards.length === 0) {
         showNotification('No job cards found. Make sure you are on a LinkedIn jobs search page.');
         break;
       }
 
-      // Process the jobs on current page
-      await processInitialJobCards(jobCards);
+      // Process the jobs on current page one by one
+      await processJobCards(jobCards);
 
-      // Create detailed job objects by visiting each job page
-      // Pass the current lastProcessedIndex to avoid reprocessing
-      await processJobDetails(lastProcessedIndex);
-
-      // Update lastProcessedIndex to the length of scrapedJobs after processing
-      lastProcessedIndex = scrapedJobs.length;
+      // After processing the first page, update the flag
+      if (isFirstPage) {
+        isFirstPage = false;
+      }
 
       // Check if we should go to the next page
       if (currentPage < config.maxPages) {
@@ -120,20 +177,26 @@ async function startScraping() {
       }
     }
 
-    // Filter jobs based on criteria
-    // const filteredJobs = filterJobs(scrapedJobs);
-    const filteredJobs = scrapedJobs;
+    // Signal that we're done
+    chrome.runtime.sendMessage({
+      action: 'finishScraping',
+      stats: {
+        totalProcessed: jobsProcessedCount,
+        totalMatched: jobsMatchedCount,
+        totalPages: currentPage
+      }
+    });
 
-    // Export the data
-    if (filteredJobs.length > 0) {
-      exportData(filteredJobs);
-      showNotification(`Successfully filtered ${filteredJobs.length} jobs out of ${scrapedJobs.length} total jobs from ${currentPage} pages.`);
-    } else {
-      showNotification('No jobs matched your filter criteria.');
-    }
+    showNotification(`Completed! Processed ${jobsProcessedCount} jobs, found ${jobsMatchedCount} matches from ${currentPage} pages.`);
   } catch (error) {
     console.error('Error during scraping:', error);
     showNotification('An error occurred while scraping jobs. Check console for details.');
+
+    // Notify background of error
+    chrome.runtime.sendMessage({
+      action: 'scrapingError',
+      error: error.message
+    });
   } finally {
     isRunning = false;
   }
@@ -145,12 +208,10 @@ async function goToNextPage() {
     const nextButton = document.querySelector('.jobs-search-pagination__button--next');
 
     if (!nextButton || nextButton.disabled) {
-      console.log('No next page button found or button is disabled');
       return false;
     }
 
     nextButton.click();
-    console.log('Clicked next page button');
     return true;
   } catch (error) {
     console.error('Error navigating to next page:', error);
@@ -202,24 +263,76 @@ function showNotification(message) {
 // Scroll to load all job cards
 async function scrollToLoadAllJobs() {
   return new Promise((resolve) => {
-    const searchFooter = document.querySelector('#jobs-search-results-footer');
-    if (!searchFooter) {
-      console.error('Jobs list container not found');
-      resolve();
-      return;
-    }
+    // Safer, more controlled scrolling to avoid rendering issues
+    const maxScrollAttempts = 5;
+    let scrollAttempt = 0;
 
-    searchFooter.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    resolve();
+    // Track height to detect when we've reached the bottom
+    let prevHeight = document.body.scrollHeight;
+
+    const scrollInterval = setInterval(() => {
+      try {
+        // Scroll in smaller increments to reduce strain
+        window.scrollBy(0, 500);
+
+        // Check if we're at the bottom or have scrolled enough times
+        scrollAttempt++;
+        const currentHeight = document.body.scrollHeight;
+        const isAtBottom = window.innerHeight + window.scrollY >= currentHeight - 200;
+        const noMoreContent = currentHeight === prevHeight;
+
+        if (isAtBottom || noMoreContent || scrollAttempt >= maxScrollAttempts) {
+          clearInterval(scrollInterval);
+
+          // Scroll back to top gently to reset view
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+
+          // Allow time for rendering before continuing
+          setTimeout(resolve, 500);
+        }
+
+        prevHeight = currentHeight;
+      } catch (error) {
+        console.error('Error during scroll:', error);
+        clearInterval(scrollInterval);
+        resolve();
+      }
+    }, 1000); // Gentle 1 second interval between scrolls
   });
 }
 
-// Process the initial job cards to get basic information
-async function processInitialJobCards(jobCards) {
+// Scroll to load all job cards - simple version
+async function scrollToLoadAllJobsSimple() {
+  const searchFooter = document.querySelector('#jobs-search-results-footer');
+  if (!searchFooter) {
+    console.error('Jobs list container not found');
+    return;
+  }
+  searchFooter.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  await sleep(3000);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  await sleep(500);
+}
+
+// Process job cards one by one
+async function processJobCards(jobCards) {
   const jobsToProcess = Math.min(jobCards.length, config.maxJobs);
 
   for (let i = 0; i < jobsToProcess; i++) {
+    // Exit early if we've already processed the maximum number of jobs for this page
+    if (jobsProcessedThisPage >= config.maxJobs) {
+      break;
+    }
+
     const jobCard = jobCards[i];
+
+    if (!document.body.contains(jobCard)) {
+      console.warn('Job card not found in document body. Skipping...');
+      continue;
+    }
 
     try {
       // Extract basic job information
@@ -229,7 +342,6 @@ async function processInitialJobCards(jobCards) {
       const locationElement = jobCard.querySelector('.artdeco-entity-lockup__caption');
 
       if (!linkElement || !companyElement || !locationElement || !titleElement) {
-        console.warn('Skipping job card - missing required elements');
         continue;
       }
 
@@ -245,6 +357,8 @@ async function processInitialJobCards(jobCards) {
       }
 
       processedJobIds.add(jobId);
+      jobsProcessedCount++;
+      jobsProcessedThisPage++;
 
       // Create basic job object
       const jobInfo = {
@@ -254,15 +368,20 @@ async function processInitialJobCards(jobCards) {
         location,
         url,
         description: '', // Will be filled later
+        originalPostedAt: '', // Will be filled later
         lastPostedAt: '', // Will be filled later
         estimateTotalApplicants: '', // Will be filled later
         matchCriteria: false,
       };
 
-      scrapedJobs.push(jobInfo);
+      // Wait for random amount of time between 2.5 and 3.5 seconds to avoid hitting rate limits
+      await sleep(Math.floor(Math.random() * 1000) + 2500);
+
+      // Process job details immediately
+      await processJobDetail(jobInfo);
 
       // Update notification periodically
-      if (i % 10 === 0) {
+      if (i % 5 === 0) {
         showNotification(`Processing job listings: ${i + 1}/${jobsToProcess}`);
       }
     } catch (error) {
@@ -271,125 +390,224 @@ async function processInitialJobCards(jobCards) {
   }
 }
 
-// Process job details by clicking on each job card to view details
-async function processJobDetails(startIndex = 0) {
-  const jobDetailsContainer = document.querySelector('.jobs-search__job-details--container');
+async function waitForElement(selector, timeout = 5000) {
+  const started = Date.now();
+  while (Date.now() - started < timeout) {
+    if (document.querySelector(selector)) {
+      return document.querySelector(selector);
+    }
+    await sleep(100); // Poll every 100ms
+  }
+  throw new Error(`Element ${selector} not found within ${timeout}ms`);
+}
 
-  if (!jobDetailsContainer) {
-    console.error('Job details container not found');
-    return;
+async function manageRateLimit() {
+  const now = Date.now();
+
+  // Reset counter if last request was over a minute ago
+  if ((now - lastApiRequestTime) > 60000) {
+    apiRequestsInLastMinute = 0;
+    tokensUsedInLastMinute = 0;
   }
 
-  for (let i = startIndex; i < scrapedJobs.length; i++) {
-    const job = scrapedJobs[i];
+  if (apiRequestsInLastMinute >= config.apiRateLimit) {
+    const timeSinceLastRequest = now - lastApiRequestTime;
+    const backoffTime = Math.min(
+      config.apiCooldown * Math.pow(1.5, apiRequestsInLastMinute - config.apiRateLimit),
+      60000
+    );
 
-    try {
-      // Find the corresponding job card by URL
-      // const jobLink = document.querySelector(`[href="${job.url}"]`);
-      // if (!jobLink) {
-      //   console.warn(`Could not find job link for URL: ${job.url}`);
-      //   continue;
-      // }
-
-      // const jobCard = jobLink.closest('.job-card-container');
-      const jobCard = document.querySelector(`[data-job-id="${job.id}"]`);
-
-      if (!jobCard) {
-        console.warn(`Could not find job card for ID: ${job.id}`);
-        continue;
-      }
-
-      // Click on the job card to open details
-      jobCard.click();
-
-      // Wait for job details to load
-      await sleep(1500);
-
-      // Extract job description
-      const descriptionElement = jobDetailsContainer.querySelector('.jobs-description-content');
-
-      // Extract job meta
-      const jobMetaElement = jobDetailsContainer.querySelector('.job-details-jobs-unified-top-card__tertiary-description-container');
-      const jobMeta = jobMetaElement.textContent.trim().split('·').map(s => s.trim()) || [];
-      const [_, lastPostedAt, estimateTotalApplicants] = jobMeta;
-
-      if (descriptionElement) {
-        job.description = descriptionElement.textContent.trim();
-        job.lastPostedAt = lastPostedAt;
-        job.estimateTotalApplicants = estimateTotalApplicants;
-      }
-
-      // Check if the job matches the criteria
-      job.matchCriteria = await checkJobCriteria(job);
-
-      // Update notification periodically
-      if ((i - startIndex) % 5 === 0) {
-        showNotification(`Processing job details: ${i - startIndex + 1}/${scrapedJobs.length - startIndex}`);
-      }
-
-      // Wait for random amount of time between 1 and 3 seconds
-      await sleep(Math.floor(Math.random() * 2000) + 1000);
-    } catch (error) {
-      console.error(`Error processing details for job ${i}:`, error);
+    if (timeSinceLastRequest < backoffTime) {
+      const waitTime = backoffTime - timeSinceLastRequest;
+      console.log(`Rate limiting API calls, waiting ${Math.ceil(waitTime / 1000)}s`);
+      await sleep(waitTime);
+      apiRequestsInLastMinute = 0; // Reset counter after cooldown
     }
   }
 }
 
-// Find a job card element by its URL
-// function findJobCardByUrl(url) {
-//   return document.querySelector(`[href="${url}"]`).closest('.job-card-container');
-// }
+async function getJobDetail(jobId) {
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  try {
+    if (!config.pageInstance || !config.csrfToken) {
+      console.error('Page instance or CSRF token not found');
+      return;
+    }
 
-// Filter jobs based on criteria
-function filterJobs(jobs) {
-  return jobs.filter(job => {
-    const title = job.title.toLowerCase();
-    const location = job.location.toLowerCase();
+    const controller = new AbortController();
 
-    // Check title includes
-    const hasTitleKeyword = config.includeKeywords.some(keyword =>
-      title.includes(keyword.toLowerCase())
-    );
+    const response = await fetch(`https://www.linkedin.com/voyager/api/jobs/jobPostings/${jobId}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65&topN=1&topNRequestedFlavors=List(TOP_APPLICANT,IN_NETWORK,COMPANY_RECRUIT,SCHOOL_RECRUIT,HIDDEN_GEM,ACTIVELY_HIRING_COMPANY)`, {
+      signal: controller.signal,
+      headers: {
+        accept: 'application/vnd.linkedin.normalized+json+2.1',
+        'accept-language': 'en-US,en;q=0.9,id-ID;q=0.8,id;q=0.7',
+        'cache-control': 'no-cache',
+        'csrf-token': (config.csrfToken || '').replaceAll('\"', ''),
+        pragma: 'no-cache',
+        priority: 'u=1, i',
+        'x-li-lang': 'en_US',
+        'x-li-page-instance': config.pageInstance,
+        'x-li-pem-metadata': 'Voyager - Careers - Job Details=job-posting',
+        'x-li-track': '{"clientVersion":"1.13.33754","mpVersion":"1.13.33754","osName":"web","timezoneOffset":7,"timezone":"Asia/Jakarta","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":1,"displayWidth":3440,"displayHeight":1440}',
+        'x-restli-protocol-version': '2.0.0'
+      },
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      body: null,
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'include'
+    });
+    const responseJson = await response.json();
+    return responseJson.data;
+  } catch (error) {
+    console.error(`Error getting job detail from API for job ${jobId}:`, error);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
-    // Check title excludes
-    const hasExcludedKeyword = config.excludeKeywords.some(keyword =>
-      title.includes(keyword.toLowerCase())
-    );
+// Process a single job detail
+async function processJobDetail(jobInfo) {
+  try {
+    const jobDetail = await getJobDetail(jobInfo.id);
 
-    // Check location includes
-    // const hasRequiredLocation = config.locationRequirements.mustContain.some(keyword =>
-    //   location.includes(keyword.toLowerCase())
-    // );
+    if (!jobDetail) {
+      throw new Error('Job detail not found');
+    }
 
-    // Check location excludes
-    // const hasExcludedLocation = config.locationRequirements.exclude.some(keyword =>
-    //   location.includes(keyword.toLowerCase())
-    // );
+    jobInfo.description = jobDetail.description.text;
+    jobInfo.originalPostedAt = jobDetail.originalListedAt ? new Date(jobDetail.originalListedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
+    jobInfo.lastPostedAt = jobDetail.listedAt ? new Date(jobDetail.listedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
+    jobInfo.estimateTotalApplicants = jobDetail.applies;
 
-    // Job must:
-    // 1. Have a relevant title
-    // 2. Not have excluded keywords in title
-    // 3. Be in the required location
-    // 4. Not be in an excluded location type
-    return hasTitleKeyword && !hasExcludedKeyword && hasRequiredLocation && !hasExcludedLocation;
-  });
+    // // Safely click on the job card with error handling
+    // try {
+    //   jobCard.click();
+    // } catch (clickError) {
+    //   console.error('Error clicking job card:', clickError);
+    //   return;
+    // }
+
+    // // Wait for job details to load
+    // // await sleep(1500);
+
+    // // // Get job details container with safety check
+    // // const jobDetailsContainer = document.querySelector('.jobs-search__job-details--container');
+    // // if (!jobDetailsContainer) {
+    // //   console.error('Job details container not found');
+    // //   return;
+    // // }
+
+    // // Extract job description - with safe fallback
+    // // const descriptionElement = jobDetailsContainer.querySelector('.jobs-description-content');
+    // const descriptionElement = await waitForElement('#job-details p[dir="ltr"]');
+    // if (descriptionElement) {
+    //   try {
+    //     jobInfo.description = descriptionElement.textContent.trim();
+    //   } catch (descError) {
+    //     console.error('Error extracting job description:', descError);
+    //     jobInfo.description = '';
+    //   }
+    // }
+
+    // // Extract job meta with proper error handling
+    // const jobMetaElement = await waitForElement('.job-details-jobs-unified-top-card__tertiary-description-container span[dir="ltr"]');
+    // if (jobMetaElement) {
+    //   try {
+    //     const jobMeta = jobMetaElement.textContent.trim().split('·').map(s => s.trim()) || [];
+    //     const [, lastPostedAt, estimateTotalApplicants] = jobMeta;
+    //     jobInfo.lastPostedAt = lastPostedAt;
+    //     jobInfo.estimateTotalApplicants = estimateTotalApplicants;
+    //   } catch (metaError) {
+    //     console.error('Error parsing job meta:', metaError);
+    //   }
+    // }
+
+    // Check if the job matches the criteria - with timeout protection
+    try {
+      // Handle rate limiting before API call
+      await manageRateLimit();
+
+      // Set a timeout to prevent hanging in the criteria check
+      const criteriaPromise = checkJobCriteria(jobInfo);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Criteria check timeout')), API_TIMEOUT)
+      );
+
+      jobInfo.matchCriteria = await Promise.race([criteriaPromise, timeoutPromise]);
+      delete jobInfo.description;
+    } catch (criteriaError) {
+      console.error(`Error in criteria check for job ${jobInfo.id}:`, criteriaError);
+    }
+
+    // If it matches, send it to the background script
+    if (jobInfo.matchCriteria) {
+      jobsMatchedCount++;
+    }
+
+    chrome.runtime.sendMessage({
+      action: 'addMatchedJob',
+      job: {
+        title: jobInfo.title,
+        company: jobInfo.company,
+        location: jobInfo.location,
+        id: jobInfo.id,
+        lastPostedAt: jobInfo.lastPostedAt,
+        estimateTotalApplicants: jobInfo.estimateTotalApplicants,
+        matchCriteria: jobInfo.matchCriteria
+      }
+    }, response => {
+      // Handle null response (which can happen if the background script is not ready)
+      if (!response) {
+        console.warn('No response from background script when adding matched job');
+        return;
+      }
+
+      if (!response.success) {
+        console.error(`Failed to add job to matched list: ${jobInfo.title}`);
+      }
+    });
+  } catch (error) {
+    console.error(`Error processing details for job ${jobInfo.id}:`, error);
+  }
 }
 
 async function checkJobCriteria(job) {
-  // Get the API key from Chrome's storage
-  const result = await new Promise(resolve => {
-    chrome.storage.local.get(['openaiApiKey'], resolve);
-  });
+  // // Simple matching without API for basic filtering
+  // const titleLower = job.title.toLowerCase();
+  // const locationLower = job.location.toLowerCase();
 
-  const apiKey = result.openaiApiKey;
+  // // Check if the job matches the simple criteria first
+  // let matchesKeyword = config.includeKeywords.some(keyword =>
+  //   titleLower.includes(keyword.toLowerCase())
+  // );
+
+  // let matchesLocation = config.locationRequirements.some(location =>
+  //   locationLower.includes(location.toLowerCase())
+  // );
+
+  // // If basic criteria doesn't match, no need to call API
+  // if (!matchesKeyword || !matchesLocation) {
+  //   return false;
+  // }
+
+  if (!config.includeKeywords.join(', ')) {
+    return true;
+  }
+
+  const apiKey = config.openaiApiKey;
 
   if (!apiKey) {
     console.error('OpenAI API key not found in storage');
     return false;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      signal: controller.signal,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -400,22 +618,35 @@ async function checkJobCriteria(job) {
         messages: [
           {
             role: 'system',
-            content: `
-              You are a job-matching assistant. The user will provide a set of conditions they want in a job, then provide a single job listing. Your task is to determine if the provided job listing matches ANY of the user's specified conditions.
+            content: `You are a job-matching assistant. The user will provide a set of conditions they want in a job, then provide a single job listing. Your task is to determine if the provided job listing matches ANY of the user’s specified conditions.
 
-              To do this, you should:
-              1. Interpret the job listing details (title, location, and/or description) and compare them with the user's criteria in a flexible way.
-              2. Use your reasoning to determine if the listing meets ANY of the user's conditions.
-              3. Output strictly "YES" if the listing meets any of the conditions; otherwise, output strictly "NO." No explanations.
+              Your matching rules should be:
 
-              Do not provide any additional text apart from "YES" or "NO."
-            `
+              1. **Role Match:**
+                - Compare the user’s roles of interest (e.g., “frontend engineer,” “tech lead,” “software architect,” etc.) to the job listing’s role/title/description in a flexible way.
+                - If the listing’s role is functionally similar to one of the user’s roles, count it as a match for the role requirement.
+
+              2. **Location/Remote Match:**
+                - The user will specify their location requirements, which may include “remote from [specific location],” “onsite in [city],” “hybrid in [city],” etc.
+                - If the user wants remote from Indonesia, then the listing must allow any of the following for a match:
+                  - Remote specifically from Indonesia,
+                  - Remote from anywhere (global),
+                  - Remote from Asia/APAC (which includes Indonesia),
+                  - OR a “work from abroad”/“flexible hybrid” policy that does *not* explicitly exclude Indonesia.
+                - If the listing explicitly requires a specific country/region *outside* the user’s desired scope (e.g., “Must be located in the US”), then it does not match.
+
+              3. **Comparison Logic:**
+                - If **any** of the user’s specified role or location requirements is satisfied by the job listing (i.e., the listing is a valid match for at least one desired role *and* meets the location requirement), output strictly "YES."
+                - Otherwise, output strictly "NO."
+
+              4. **Output:**
+                - Provide **no additional text or explanation** beyond “YES” or “NO.”`
           },
           {
             role: 'user',
             content: `
               Conditions: ${config.includeKeywords.join(', ')}.
-              Location Requirements: ${config.locationRequirements.join(', ')}
+              Location Requirements: ${config.locationRequirements.join(', ') || 'Anywhere'}
 
               Job Listing:
               \`\`\`
@@ -429,20 +660,26 @@ async function checkJobCriteria(job) {
       })
     });
 
+    apiRequestsInLastMinute++;
+    lastApiRequestTime = Date.now();
+
     const data = await response.json();
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error('Invalid API response:', data);
+      return false;
+    }
+
+    if (data.usage.total_tokens) {
+      tokensUsedInLastMinute += data.usage.total_tokens;
+    }
+
     return data.choices[0].message.content.trim() === 'YES';
   } catch (error) {
     console.error('Error checking job criteria:', error);
     return false;
+  } finally {
+    clearTimeout(timeoutId);
+    job.description = null; // Release memory
   }
-}
-
-// Export the data to CSV
-function exportData(filteredJobs) {
-  chrome.runtime.sendMessage({
-    action: 'exportData',
-    data: filteredJobs
-  }, response => {
-    console.log('Export response:', response);
-  });
 }

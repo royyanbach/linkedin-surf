@@ -5,17 +5,49 @@
   <title>LinkedIn Job Filter</title>
   <style>
     body {
+      margin: 0;
       width: 350px;
-      padding: 15px;
+      padding: 0 15px;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #333;
+      background-color: #f5f5f5;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      padding: 15px;
+      background: #fff;
+      margin: 0 -15px;
+      box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
     }
 
     h1 {
       color: #0a66c2;
       font-size: 18px;
-      margin-top: 0;
-      margin-bottom: 15px;
+      margin: 0;
+    }
+
+    .profile-picture-img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    footer {
+      padding: 15px;
+      background: #fff;
+      margin: 0 -15px;
+      position: sticky;
+      bottom: 0;
+      box-shadow: rgba(0, 0, 0, 0.15) 1.95px -1.95px 2.6px;
+    }
+
+    main {
+      padding: 15px 0;
     }
 
     .instructions {
@@ -89,51 +121,97 @@
       border-radius: 4px;
       box-sizing: border-box;
     }
+
+    .google-icon {
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+
+    .auth-status {
+      margin-bottom: 15px;
+    }
+
+    .signed-out {
+      background-color: #f0f0f0;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .signed-in {
+      background-color: #e1f5da;
+      padding: 8px 16px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
-  <h1>LinkedIn Job Filter</h1>
+  <header>
+    <h1>LinkedIn Surf</h1>
+    <img id="profilePicture" class="profile-picture-img" src="" alt="Profile Picture" style="display: none;">
+  </header>
 
-  <div class="instructions">
-    This extension helps you filter job listings on LinkedIn for specified roles and locations.
-  </div>
+  <main>
+    <div id="authStatus" class="auth-status">
+      <div id="signedIn" class="signed-in" style="display: none;">
+        Logged in as: <span id="userEmail"></span>
+      </div>
+    </div>
 
-  <div class="section">
-    <div class="section-title">Job Role</div>
-    <input type="text" id="jobRole" placeholder="E.g., frontend, fullstack, react" class="text-input">
-    <div class="filter-keywords">Comma separated keywords</div>
-  </div>
+    <div class="instructions">
+      This extension helps you filter job listings on LinkedIn for specified roles and locations, and exports directly to Google Sheets.
+    </div>
 
-  <div class="section">
-    <div class="section-title">Job Location</div>
-    <input type="text" id="jobLocation" placeholder="E.g., Indonesia, Jakarta" class="text-input">
-    <div class="filter-keywords">Comma separated locations</div>
-  </div>
+    <div id="formFields" style="display: none;">
+      <div class="section">
+        <div class="section-title">Job Role</div>
+        <input type="text" id="jobRole" placeholder="E.g., frontend, fullstack, react" class="text-input">
+        <div class="filter-keywords">Comma separated keywords</div>
+      </div>
 
-  <div class="section">
-    <div class="section-title">Max Jobs</div>
-    <input type="number" id="maxJobs" placeholder="Number of jobs to process" value="25" min="1" max="100" class="text-input">
-    <div class="filter-keywords">Maximum number of jobs to process</div>
-  </div>
+      <div class="section">
+        <div class="section-title">Job Location</div>
+        <input type="text" id="jobLocation" placeholder="E.g., Indonesia, Jakarta" class="text-input">
+        <div class="filter-keywords">Comma separated locations</div>
+      </div>
 
-  <div class="section">
-    <div class="section-title">Max Pages</div>
-    <input type="number" id="maxPages" placeholder="Number of pages to process" value="3" min="1" max="10" class="text-input">
-    <div class="filter-keywords">Maximum number of pages to process</div>
-  </div>
+      <div class="section">
+        <div class="section-title">Max Jobs Per Page</div>
+        <input type="number" id="maxJobs" placeholder="Number of jobs to process" value="25" min="1" max="100" class="text-input">
+        <div class="filter-keywords">Maximum number of jobs to process</div>
+      </div>
 
-  <div class="section">
-    <div class="section-title">OpenAI API Key</div>
-    <input type="password" id="apiKey" placeholder="Enter your OpenAI API key" class="text-input">
-    <div class="filter-keywords">Required for AI-powered job matching</div>
-  </div>
+      <div class="section">
+        <div class="section-title">Max Pages</div>
+        <input type="number" id="maxPages" placeholder="Number of pages to process" value="3" min="1" max="10" class="text-input">
+        <div class="filter-keywords">Maximum number of pages to process</div>
+      </div>
 
-  <button id="startButton">Start Filtering Jobs</button>
+      <div class="section">
+        <div class="section-title">OpenAI API Key</div>
+        <input type="password" id="apiKey" placeholder="Enter your OpenAI API key" class="text-input">
+        <div class="filter-keywords">Required for AI-powered job matching</div>
+      </div>
 
-  <div class="note">
-    Note: This will work only on LinkedIn job search pages.
-    Results will be exported as CSV.
-  </div>
+      <div class="section">
+        <div class="section-title">Linkedin Page Instance</div>
+        <input type="text" id="pageInstance" placeholder="urn:li:page:d_flagship3_search_srp_jobs;..." class="text-input">
+        <div class="filter-keywords">LinkedIn page instance identifier</div>
+      </div>
+
+      <div class="note">
+        Note: This will work only on LinkedIn job search pages.
+        Results will be exported directly to Google Sheets.
+        You'll need to authorize access to your Google account when prompted.
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <button id="startButton">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="google-icon" id="googleIcon" style="display: none;" width="18" height="18">
+      <span id="buttonText">Start Filtering Jobs</span>
+    </button>
+  </footer>
 
   <script src="popup.js"></script>
 </body>
