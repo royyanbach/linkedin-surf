@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "LinkedIn Job Filter",
+  "name": "Linkedin Surf",
   "version": "1.0",
   "description": "Automates job search on LinkedIn by filtering and exporting results to Google Sheets",
-  "permissions": ["activeTab", "storage", "downloads", "identity"],
+  "permissions": ["activeTab", "storage", "identity"],
   "host_permissions": [
     "https://www.linkedin.com/jobs/search*",
     "https://www.linkedin.com/jobs/collections*",

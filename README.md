@@ -29,7 +29,7 @@ To address these issues, I created this extension. It automatically scrolls thro
 2. Open Chrome and navigate to `chrome://extensions/`.
 3. Enable "Developer mode" (toggle in the top-right corner).
 4. Click "Load unpacked" and select the directory containing the extension files.
-5. The LinkedIn Job Filter extension should now appear in your extensions list.
+5. The Linkedin Surf extension should now appear in your extensions list.
 
 ## Usage
 
