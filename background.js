@@ -66,6 +66,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       } catch (e) {
         // Popup might be closed, ignore error
+        console.log("Popup not open, skipping status update:", e.message);
       }
     } else {
       // Send a status update to the popup if it's open
@@ -77,6 +78,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       } catch (e) {
         // Popup might be closed, ignore error
+        console.log("Popup not open, skipping status update:", e.message);
       }
     }
     sendResponse({ success: true });
@@ -92,6 +94,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     } catch (e) {
       // Popup might be closed, ignore error
+      console.log("Popup not open, skipping status update:", e.message);
     }
     sendResponse({ success: true });
   }

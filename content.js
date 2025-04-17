@@ -349,7 +349,7 @@ async function processJobCards(jobCards) {
       const company = companyElement.textContent.trim();
       const location = locationElement.textContent.trim();
       const url = linkElement.getAttribute('href');
-      const jobId = jobCard.dataset.jobId;
+      const jobId = jobCard.dataset.occludableJobId;
 
       // Avoid duplicates
       if (processedJobIds.has(jobId)) {

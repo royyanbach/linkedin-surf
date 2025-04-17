@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const maxJobsInput = document.getElementById('maxJobs');
   const maxPagesInput = document.getElementById('maxPages');
   const pageInstanceInput = document.getElementById('pageInstance');
+  const footerElement = document.querySelector('footer');
   const statusElement = document.getElementById('status') || createStatusElement();
   const signedInElement = document.getElementById('signedIn');
   const userEmailElement = document.getElementById('userEmail');
@@ -142,6 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
           maxPages: maxPages,
           pageInstance: pageInstance
         }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("Error sending message to content script:", chrome.runtime.lastError.message);
+            buttonTextElement.textContent = 'Start Filtering Jobs';
+            startButton.disabled = false;
+            updateStatus(`Error: Could not connect to LinkedIn page script. Please reload the page and try again. (${chrome.runtime.lastError.message})`, true);
+            return;
+          }
+
           if (response && response.success) {
             updateStatus('Scraping in progress. Results will be saved to Google Sheets.');
           } else {
@@ -178,14 +187,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Create status element if it doesn't exist
   function createStatusElement() {
+    if (!footerElement) {
+      return;
+    }
+
     const status = document.createElement('div');
     status.id = 'status';
-    status.style.marginTop = '15px';
+    status.style.marginBottom = '15px';
     status.style.padding = '10px';
     status.style.borderRadius = '5px';
     status.style.backgroundColor = '#f5f5f5';
     status.style.display = 'none';
-    document.body.appendChild(status);
+    footerElement.insertBefore(status, footerElement.firstChild);
     return status;
   }
 
@@ -200,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Listen for messages from background script to update status
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'updateScrapingStatus') {
+      console.log(message);
       updateStatus(message.status, message.isError);
 
       // Re-enable button if process is complete
