@@ -204,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Update status text and make visible
   function updateStatus(message, isError = false) {
+    statusElement.innerHTML = '';
     statusElement.textContent = message;
     statusElement.style.display = 'block';
     statusElement.style.backgroundColor = isError ? '#ffebee' : '#e8f5e9';
@@ -213,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Listen for messages from background script to update status
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'updateScrapingStatus') {
-      console.log(message);
       updateStatus(message.status, message.isError);
 
       // Re-enable button if process is complete
@@ -224,8 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // If we received a sheet URL, add a link to it
       if (message.sheetUrl) {
-        const linkContainer = document.createElement('div');
-        linkContainer.style.marginTop = '10px';
 
         const link = document.createElement('a');
         link.href = message.sheetUrl;
@@ -234,8 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
         link.style.color = '#0a66c2';
         link.style.textDecoration = 'none';
 
-        linkContainer.appendChild(link);
-        statusElement.appendChild(linkContainer);
+        statusElement.appendChild(document.createTextNode(' '));
+        statusElement.appendChild(link);
       }
     }
     return true;

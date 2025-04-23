@@ -27,6 +27,7 @@ let config = {
 // Track processed jobs to avoid duplicates
 let processedJobIds = new Set();
 let isRunning = false;
+let duplicateCount = 0;
 let jobsProcessedCount = 0;
 let jobsMatchedCount = 0;
 let jobsProcessedThisPage = 0;
@@ -34,6 +35,8 @@ let isFirstPage = true; // Track if we're on the first page
 let apiRequestsInLastMinute = 0;
 let tokensUsedInLastMinute = 0;
 let lastApiRequestTime = 0;
+let overlayElement = null; // Reference to the overlay element
+let userStopped = false; // Flag to indicate if user stopped manually
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -99,15 +102,21 @@ async function startScraping() {
   try {
     // Only reset matched jobs at the beginning of the entire scraping process
     chrome.runtime.sendMessage({ action: 'resetMatchedJobs' }, response => {
+      if (!response?.sheetId) {
+        showNotification(`Failed to create Google Sheet: Missing Google Sheet ID. Please try again.`);
+        isRunning = false;
+        return;
+      }
+
       // If sheet creation failed, show error and abort
-      if (response && !response.success) {
+      if (!response?.success) {
         showNotification(`Failed to create Google Sheet: ${response.error}`);
         isRunning = false;
         return;
       }
 
       // Continue with scraping if sheet was created successfully
-      continueWithScraping();
+      continueWithScraping(response.sheetId);
     });
   } catch (error) {
     console.error('Error during scraping setup:', error);
@@ -116,7 +125,7 @@ async function startScraping() {
   }
 }
 
-async function continueWithScraping() {
+async function continueWithScraping(sheetId = null) {
   try {
     // Load config from storage
     await loadConfig();
@@ -127,16 +136,21 @@ async function continueWithScraping() {
     processedJobIds = new Set();
     jobsProcessedCount = 0;
     jobsMatchedCount = 0;
+    duplicateCount = 0;
     isFirstPage = true;
+    userStopped = false; // Reset stop flag
 
-    // Show notification to user
-    showNotification('Starting to scrape LinkedIn jobs. Please do not navigate away from this page.');
+    // Show notification to user - Replace with overlay
+    // showNotification('Starting to scrape LinkedIn jobs. Please do not navigate away from this page.');
+    createOverlay(); // Show the overlay
+    resetOverlayInitialStats(sheetId);
 
     let currentPage = 1;
     let continueToNextPage = true;
 
-    while (continueToNextPage && currentPage <= config.maxPages) {
-      showNotification(`Processing page ${currentPage} of ${config.maxPages}`);
+    while (isRunning && continueToNextPage && currentPage <= config.maxPages && !userStopped) { // Check isRunning flag
+      // showNotification(`Processing page ${currentPage} of ${config.maxPages}`);
+      updateOverlayStats(currentPage, config.maxPages, jobsProcessedCount, jobsMatchedCount, duplicateCount); // Update overlay stats
 
       // Get all job cards on the page
       // await scrollToLoadAllJobsSimple();
@@ -155,7 +169,7 @@ async function continueWithScraping() {
       }
 
       // Process the jobs on current page one by one
-      await processJobCards(jobCards);
+      await processJobCards(jobCards, currentPage); // Pass currentPage for stats
 
       // After processing the first page, update the flag
       if (isFirstPage) {
@@ -163,7 +177,7 @@ async function continueWithScraping() {
       }
 
       // Check if we should go to the next page
-      if (currentPage < config.maxPages) {
+      if (isRunning && currentPage < config.maxPages) { // Check isRunning flag
         continueToNextPage = await goToNextPage();
         if (continueToNextPage) {
           // Wait for the next page to load
@@ -183,11 +197,15 @@ async function continueWithScraping() {
       stats: {
         totalProcessed: jobsProcessedCount,
         totalMatched: jobsMatchedCount,
-        totalPages: currentPage
+        totalPages: currentPage - (continueToNextPage ? 0 : 1) // Adjust final page count
       }
     });
 
-    showNotification(`Completed! Processed ${jobsProcessedCount} jobs, found ${jobsMatchedCount} matches from ${currentPage} pages.`);
+    const finalMessage = userStopped
+      ? `Scraping stopped by user. Processed ${jobsProcessedCount} jobs, found ${jobsMatchedCount} matches.`
+      : `Completed! Processed ${jobsProcessedCount} jobs, found ${jobsMatchedCount} matches from ${currentPage - (continueToNextPage ? 0 : 1)} pages.`;
+    showNotification(finalMessage);
+    resetOverlayInitialStats(sheetId, true);
   } catch (error) {
     console.error('Error during scraping:', error);
     showNotification('An error occurred while scraping jobs. Check console for details.');
@@ -199,6 +217,7 @@ async function continueWithScraping() {
     });
   } finally {
     isRunning = false;
+    // removeOverlay(); // Ensure overlay is removed
   }
 }
 
@@ -318,12 +337,12 @@ async function scrollToLoadAllJobsSimple() {
 }
 
 // Process job cards one by one
-async function processJobCards(jobCards) {
+async function processJobCards(jobCards, currentPage) { // Accept currentPage
   const jobsToProcess = Math.min(jobCards.length, config.maxJobs);
 
   for (let i = 0; i < jobsToProcess; i++) {
     // Exit early if we've already processed the maximum number of jobs for this page
-    if (jobsProcessedThisPage >= config.maxJobs) {
+    if (jobsProcessedThisPage >= config.maxJobs || !isRunning) { // Check isRunning flag
       break;
     }
 
@@ -352,13 +371,17 @@ async function processJobCards(jobCards) {
       const jobId = jobCard.dataset.occludableJobId;
 
       // Avoid duplicates
-      if (processedJobIds.has(jobId)) {
+      if (processedJobIds.has(jobId) || !isRunning) { // Check isRunning flag
+        duplicateCount++;
         continue;
       }
 
       processedJobIds.add(jobId);
       jobsProcessedCount++;
       jobsProcessedThisPage++;
+
+      // Update overlay stats after processing a unique job
+      updateOverlayStats(currentPage, config.maxPages, jobsProcessedCount, jobsMatchedCount, duplicateCount);
 
       // Create basic job object
       const jobInfo = {
@@ -379,11 +402,6 @@ async function processJobCards(jobCards) {
 
       // Process job details immediately
       await processJobDetail(jobInfo);
-
-      // Update notification periodically
-      if (i % 5 === 0) {
-        showNotification(`Processing job listings: ${i + 1}/${jobsToProcess}`);
-      }
     } catch (error) {
       console.error('Error processing job card:', error);
     }
@@ -469,6 +487,9 @@ async function getJobDetail(jobId) {
 // Process a single job detail
 async function processJobDetail(jobInfo) {
   try {
+    // Check if scraping was stopped before proceeding
+    if (!isRunning) return;
+
     const jobDetail = await getJobDetail(jobInfo.id);
 
     if (!jobDetail) {
@@ -528,6 +549,9 @@ async function processJobDetail(jobInfo) {
       // Handle rate limiting before API call
       await manageRateLimit();
 
+      // Check if scraping was stopped before API call
+      if (!isRunning) return;
+
       // Set a timeout to prevent hanging in the criteria check
       const criteriaPromise = checkJobCriteria(jobInfo);
       const timeoutPromise = new Promise((_, reject) =>
@@ -543,7 +567,13 @@ async function processJobDetail(jobInfo) {
     // If it matches, send it to the background script
     if (jobInfo.matchCriteria) {
       jobsMatchedCount++;
+      // Update overlay stats immediately after a match
+      // Note: currentPage is not directly available here, might need passing or using a global
+      // For simplicity, relying on the update in processJobCards loop is sufficient
     }
+
+    // Check if scraping was stopped before sending message
+    if (!isRunning) return;
 
     chrome.runtime.sendMessage({
       action: 'addMatchedJob',
@@ -591,6 +621,9 @@ async function checkJobCriteria(job) {
   //   return false;
   // }
 
+  // Check if running before making API call
+  if (!isRunning) return false;
+
   if (!config.includeKeywords.join(', ')) {
     return true;
   }
@@ -618,29 +651,29 @@ async function checkJobCriteria(job) {
         messages: [
           {
             role: 'system',
-            content: `You are a job-matching assistant. The user will provide a set of conditions they want in a job, then provide a single job listing. Your task is to determine if the provided job listing matches ANY of the user’s specified conditions.
+            content: `You are a job-matching assistant. The user will provide a set of conditions they want in a job, then provide a single job listing. Your task is to determine if the provided job listing matches ANY of the user's specified conditions.
 
               Your matching rules should be:
 
               1. **Role Match:**
-                - Compare the user’s roles of interest (e.g., “frontend engineer,” “tech lead,” “software architect,” etc.) to the job listing’s role/title/description in a flexible way.
-                - If the listing’s role is functionally similar to one of the user’s roles, count it as a match for the role requirement.
+                - Compare the user's roles of interest (e.g., "frontend engineer," "tech lead," "software architect," etc.) to the job listing's role/title/description in a flexible way.
+                - If the listing's role is functionally similar to one of the user's roles, count it as a match for the role requirement.
 
               2. **Location/Remote Match:**
-                - The user will specify their location requirements, which may include “remote from [specific location],” “onsite in [city],” “hybrid in [city],” etc.
+                - The user will specify their location requirements, which may include "remote from [specific location]," "onsite in [city]," "hybrid in [city]," etc.
                 - If the user wants remote from Indonesia, then the listing must allow any of the following for a match:
                   - Remote specifically from Indonesia,
                   - Remote from anywhere (global),
                   - Remote from Asia/APAC (which includes Indonesia),
-                  - OR a “work from abroad”/“flexible hybrid” policy that does *not* explicitly exclude Indonesia.
-                - If the listing explicitly requires a specific country/region *outside* the user’s desired scope (e.g., “Must be located in the US”), then it does not match.
+                  - OR a "work from abroad"/"flexible hybrid" policy that does *not* explicitly exclude Indonesia.
+                - If the listing explicitly requires a specific country/region *outside* the user's desired scope (e.g., "Must be located in the US"), then it does not match.
 
               3. **Comparison Logic:**
-                - If **any** of the user’s specified role or location requirements is satisfied by the job listing (i.e., the listing is a valid match for at least one desired role *and* meets the location requirement), output strictly "YES."
+                - If **any** of the user's specified role or location requirements is satisfied by the job listing (i.e., the listing is a valid match for at least one desired role *and* meets the location requirement), output strictly "YES."
                 - Otherwise, output strictly "NO."
 
               4. **Output:**
-                - Provide **no additional text or explanation** beyond “YES” or “NO.”`
+                - Provide **no additional text or explanation** beyond "YES" or "NO."`
           },
           {
             role: 'user',
@@ -659,6 +692,9 @@ async function checkJobCriteria(job) {
         ]
       })
     });
+
+    // Check if running after API call returns
+    if (!isRunning) return false;
 
     apiRequestsInLastMinute++;
     lastApiRequestTime = Date.now();
@@ -682,4 +718,102 @@ async function checkJobCriteria(job) {
     clearTimeout(timeoutId);
     job.description = null; // Release memory
   }
+}
+
+function createOverlay() {
+  if (overlayElement) return; // Already exists
+
+  userStopped = false; // Reset stop flag
+
+  overlayElement = document.createElement('div');
+  overlayElement.id = 'linkedin-surf-overlay';
+  overlayElement.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-size: 16px;
+    text-align: center;
+    flex-direction: column; /* Stack content vertically */
+  `;
+
+  const contentDiv = document.createElement('div');
+  contentDiv.style.cssText = `
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  `;
+
+  contentDiv.innerHTML = `
+    <h2 id="overlay-title" style="margin-top: 0; margin-bottom: 20px; color: #4dabf7;">LinkedIn Surf - Scraping in Progress...</h2>
+    <p style="margin-bottom: 10px;">Please wait while we analyze job listings.</p>
+    <div style="margin: 20px 0; font-size: 1.1em;">
+      Page: <span id="overlay-current-page">1</span> / <span id="overlay-total-pages">${config.maxPages}</span><br>
+      Processed (Unique): <span id="overlay-processed-count">0</span><br>
+      Duplicate: <span id="overlay-duplicate-count">0</span><br>
+      Matched: <span id="overlay-matched-count">0</span>
+    </div>
+    <button id="overlay-stop-button" style="padding: 10px 20px; font-size: 1em; cursor: pointer; background-color: #e74c3c; color: white; border: none; border-radius: 5px; margin-top: 15px;">Stop Scraping</button>
+    <a id="overlay-open-sheet-button" target="_blank" style="padding: 10px 20px; font-size: 1em; cursor: pointer; background-color: #4dabf7; color: white; border: none; border-radius: 5px; margin-top: 15px; text-decoration: none;">Open Sheet</a>
+  `;
+
+  overlayElement.appendChild(contentDiv);
+  document.body.appendChild(overlayElement);
+
+  // Add stop button functionality
+  document.getElementById('overlay-stop-button').addEventListener('click', () => {
+    showNotification('Stopping scraping process...');
+    isRunning = false;
+    userStopped = true; // Set the flag
+    removeOverlay(); // Optionally remove overlay immediately, or wait for finally block
+  });
+}
+
+function resetOverlayInitialStats(sheetId, finished = false) {
+  if (!overlayElement) return;
+  const titleElem = document.getElementById('overlay-title');
+  const stopButton = document.getElementById('overlay-stop-button');
+  const openSheetButton = document.getElementById('overlay-open-sheet-button');
+
+  if (titleElem) {
+    titleElem.textContent = finished ? `LinkedIn Surf - Scraping Completed!` : `LinkedIn Surf - Scraping in Progress...`;
+  }
+
+  if (openSheetButton) openSheetButton.href = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
+
+  if (stopButton && finished) {
+    stopButton.textContent = 'Close';
+  }
+}
+
+function updateOverlayStats(page, totalPages, processed, matched, duplicate) {
+  if (!overlayElement) return;
+
+  const currentPageElem = document.getElementById('overlay-current-page');
+  const totalPagesElem = document.getElementById('overlay-total-pages');
+  const processedCountElem = document.getElementById('overlay-processed-count');
+  const matchedCountElem = document.getElementById('overlay-matched-count');
+  const duplicateCountElem = document.getElementById('overlay-duplicate-count');
+
+  if (currentPageElem) currentPageElem.textContent = page;
+  if (totalPagesElem) totalPagesElem.textContent = totalPages;
+  if (processedCountElem) processedCountElem.textContent = processed;
+  if (matchedCountElem) matchedCountElem.textContent = matched;
+  if (duplicateCountElem) duplicateCountElem.textContent = duplicate;
+}
+
+function removeOverlay() {
+  if (overlayElement && overlayElement.parentNode) {
+    overlayElement.parentNode.removeChild(overlayElement);
+  }
+  overlayElement = null;
 }

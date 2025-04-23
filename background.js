@@ -54,9 +54,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (config.sheetId) {
       const sheetUrl = `https://docs.google.com/spreadsheets/d/${config.sheetId}/edit`;
 
-      // Open the sheet in a new tab
-      chrome.tabs.create({ url: sheetUrl });
-
       // Send a status update to the popup if it's open
       try {
         chrome.runtime.sendMessage({
