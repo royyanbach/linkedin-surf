@@ -77,6 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
         startButton.addEventListener('click', authenticateWithGoogle);
       } else {
         // Authenticated, get user info
+        // Disable button and show loading state before fetching user info
+        startButton.disabled = true;
+        buttonTextElement.textContent = 'Fetching user data...';
         getUserInfo(token);
       }
     });
@@ -84,6 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Get user information using the token
   function getUserInfo(token) {
+    // Ensure button is disabled and shows loading state
+    startButton.disabled = true;
+    buttonTextElement.textContent = 'Fetching user data...';
+
     fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -100,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
       formFieldsElement.style.display = 'block';
       buttonTextElement.textContent = 'Start Filtering Jobs';
       googleIconElement.style.display = 'none';
+
+      // Re-enable button after user info is fetched
+      startButton.disabled = false;
 
       // Set button behavior to start scraping
       startButton.removeEventListener('click', authenticateWithGoogle);
@@ -126,6 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
       formFieldsElement.style.display = 'none';
       buttonTextElement.textContent = 'Sign in with Google';
       googleIconElement.style.display = 'inline';
+
+      // Re-enable button after error
+      startButton.disabled = false;
     });
   }
 
