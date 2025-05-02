@@ -501,6 +501,7 @@ async function processJobDetail(jobInfo) {
       throw new Error('Job detail not found');
     }
 
+    jobInfo.title = jobDetail.title;
     jobInfo.description = jobDetail.description.text;
     jobInfo.originalPostedAt = jobDetail.originalListedAt ? new Date(jobDetail.originalListedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
     jobInfo.lastPostedAt = jobDetail.listedAt ? new Date(jobDetail.listedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
@@ -588,6 +589,7 @@ async function processJobDetail(jobInfo) {
         location: jobInfo.location,
         id: jobInfo.id,
         lastPostedAt: jobInfo.lastPostedAt,
+        originalPostedAt: jobInfo.originalPostedAt,
         estimateTotalApplicants: jobInfo.estimateTotalApplicants,
         matchCriteria: jobInfo.matchCriteria
       }
