@@ -1,5 +1,7 @@
 # Linkedin Surf
 
+<video src="recording.mp4" controls width="600"></video>
+
 A Chrome extension that automates job searches on LinkedIn based on given criterias. It helps eliminate duplicates and off-target postings, focusing on onsite roles, and exports matched jobs directly to Google Sheets. It leverages the OpenAI API to intelligently determine if job listings match personalized conditions.
 
 ## Rationale
