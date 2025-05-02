@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const maxJobsInput = document.getElementById('maxJobs');
   const maxPagesInput = document.getElementById('maxPages');
   const pageInstanceInput = document.getElementById('pageInstance');
+  const sheetIdInput = document.getElementById('sheetId');
   const footerElement = document.querySelector('footer');
   const statusElement = document.getElementById('status') || createStatusElement();
   const signedInElement = document.getElementById('signedIn');
@@ -47,7 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'jobLocation': jobLocationInput,
     'maxJobs': maxJobsInput,
     'maxPages': maxPagesInput,
-    'pageInstance': pageInstanceInput
+    'pageInstance': pageInstanceInput,
+    'sheetId': sheetIdInput
   };
 
   // Add input event listeners for real-time saving
@@ -166,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxJobs = parseInt(maxJobsInput.value, 10) || 25;
     const maxPages = parseInt(maxPagesInput.value, 10) || 3;
     const pageInstance = pageInstanceInput.value.trim();
+    const sheetId = sheetIdInput.value.trim();
 
     if (!apiKey) {
       updateStatus('Please enter your OpenAI API key', true);
@@ -179,48 +182,86 @@ document.addEventListener('DOMContentLoaded', () => {
       jobLocation: jobLocation,
       maxJobs: maxJobs,
       maxPages: maxPages,
-      pageInstance: pageInstance
+      pageInstance: pageInstance,
+      sheetId: sheetId
     }, () => {
       startButton.disabled = true;
       buttonTextElement.textContent = 'Processing...';
-      updateStatus('Scraping in progress. Results will be saved to Google Sheets.');
 
-      // Get current tab
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const currentTab = tabs[0];
+      // If sheetId is provided, verify access first
+      if (sheetId) {
+        updateStatus('Verifying sheet access...');
 
-        // Send message to the content script to start scraping
-        chrome.tabs.sendMessage(currentTab.id, {
-          action: 'startScraping',
-          apiKey: apiKey,
-          jobRole: jobRole,
-          jobLocation: jobLocation,
-          maxJobs: maxJobs,
-          maxPages: maxPages,
-          pageInstance: pageInstance
+        // Send message to background script to verify sheet access
+        chrome.runtime.sendMessage({
+          action: 'verifySheetAccess',
+          sheetId: sheetId
         }, (response) => {
           if (chrome.runtime.lastError) {
-            console.error("Error sending message to content script:", chrome.runtime.lastError.message);
+            console.error("Error verifying sheet access:", chrome.runtime.lastError.message);
             buttonTextElement.textContent = 'Start Filtering Jobs';
             startButton.disabled = false;
-            updateStatus(`Error: Could not connect to LinkedIn page script. Please reload the page and try again. (${chrome.runtime.lastError.message})`, true);
+            updateStatus(`Error: Could not verify sheet access. ${chrome.runtime.lastError.message}`, true);
             return;
           }
 
-          if (response && response.success) {
-            updateStatus('Scraping in progress. Results will be saved to Google Sheets.');
-          } else {
+          if (!response || !response.success) {
             buttonTextElement.textContent = 'Start Filtering Jobs';
             startButton.disabled = false;
-            updateStatus('Failed to start scraping. Try again.', true);
+            updateStatus(`Error: ${response?.error || 'Failed to verify sheet access. Make sure the Sheet ID is correct and you have access.'}`, true);
+            return;
           }
+
+          // Sheet access verified, proceed with scraping
+          proceedWithScraping();
         });
+      } else {
+        // No sheetId provided, proceed directly with scraping
+        updateStatus('Starting job scraping process...');
+        proceedWithScraping();
+      }
+    });
+  }
+
+  function proceedWithScraping() {
+    updateStatus('Scraping in progress. Results will be saved to Google Sheets.');
+
+    // Get current tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentTab = tabs[0];
+
+      // Send message to the content script to start scraping
+      chrome.tabs.sendMessage(currentTab.id, {
+        action: 'startScraping',
+        apiKey: apiKeyInput.value.trim(),
+        jobRole: jobRoleInput.value.trim(),
+        jobLocation: jobLocationInput.value.trim(),
+        maxJobs: parseInt(maxJobsInput.value, 10) || 25,
+        maxPages: parseInt(maxPagesInput.value, 10) || 3,
+        pageInstance: pageInstanceInput.value.trim(),
+        sheetId: sheetIdInput.value.trim()
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error sending message to content script:", chrome.runtime.lastError.message);
+          buttonTextElement.textContent = 'Start Filtering Jobs';
+          startButton.disabled = false;
+          updateStatus(`Error: Could not connect to LinkedIn page script. Please reload the page and try again. (${chrome.runtime.lastError.message})`, true);
+          return;
+        }
+
+        if (response && response.success) {
+          updateStatus('Scraping in progress. Results will be saved to Google Sheets.');
+        } else {
+          buttonTextElement.textContent = 'Start Filtering Jobs';
+          startButton.disabled = false;
+          updateStatus('Failed to start scraping. Try again.', true);
+        }
       });
     });
   }
 
   // Load saved values if available
-  chrome.storage.local.get(['openaiApiKey', 'jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance'], (result) => {
+  chrome.storage.local.get(['openaiApiKey', 'jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance', 'sheetId'], (result) => {
     if (result.openaiApiKey) {
       apiKeyInput.value = result.openaiApiKey;
     }
@@ -238,6 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (result.pageInstance) {
       pageInstanceInput.value = result.pageInstance;
+    }
+    if (result.sheetId) {
+      sheetIdInput.value = result.sheetId;
     }
   });
 

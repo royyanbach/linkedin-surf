@@ -29,14 +29,34 @@ chrome.action.onClicked.addListener((tab) => {
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'resetMatchedJobs') {
-    // Create a new Google Sheet for this session
-    createNewSheet().then(sheetId => {
-      config.sheetId = sheetId;
-      sendResponse({ success: true, sheetId });
-    }).catch(error => {
-      console.error('Failed to create sheet:', error);
-      sendResponse({ success: false, error: error.message });
-    });
+    if (message.sheetId) {
+      // Use the existing sheet
+      config.sheetId = message.sheetId;
+
+      // Check if the sheet exists and we have access to it
+      verifySheetAccess(message.sheetId).then(() => {
+        // Skip adding header row for existing sheets
+        sendResponse({ success: true, sheetId: message.sheetId });
+      }).catch(error => {
+        console.error('Failed to verify sheet access:', error);
+        // If verification fails, create a new sheet
+        createNewSheet().then(sheetId => {
+          config.sheetId = sheetId;
+          sendResponse({ success: true, sheetId });
+        }).catch(createError => {
+          sendResponse({ success: false, error: createError.message });
+        });
+      });
+    } else {
+      // Create a new Google Sheet for this session
+      createNewSheet().then(sheetId => {
+        config.sheetId = sheetId;
+        sendResponse({ success: true, sheetId });
+      }).catch(error => {
+        console.error('Failed to create sheet:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    }
     return true; // Indicate async response
   }
   else if (message.action === 'addMatchedJob') {
@@ -94,6 +114,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log("Popup not open, skipping status update:", e.message);
     }
     sendResponse({ success: true });
+  }
+  else if (message.action === 'verifySheetAccess') {
+    // Directly verify access to the sheet
+    verifySheetAccess(message.sheetId)
+      .then(() => {
+        // Access verified, send success response
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        // Access failed, send error response
+        console.error('Sheet access verification failed:', error);
+        sendResponse({
+          success: false,
+          error: error.message || 'Failed to access sheet. Check the Sheet ID and ensure you have permission.'
+        });
+      });
+    return true; // Indicate async response
   }
 
   // Return true to indicate we'll respond asynchronously
@@ -222,4 +259,40 @@ async function appendToSheet(job, sheetId = null) {
   }
 
   return await response.json();
+}
+
+// Verify that we have access to the sheet and it exists with our required worksheet
+async function verifySheetAccess(sheetId) {
+  const token = await authenticateWithGoogle();
+
+  // First check if we can access the spreadsheet and get its sheets
+  const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Failed to access sheet: ${error.error.message}`);
+  }
+
+  const data = await response.json();
+
+  // Check if the spreadsheet has a sheet with the required name
+  if (!data.sheets || !data.sheets.length) {
+    throw new Error(`Spreadsheet exists but contains no sheets`);
+  }
+
+  // Look for a sheet with the name matching config.sheetName
+  const targetSheet = data.sheets.find(sheet =>
+    sheet.properties && sheet.properties.title === config.sheetName
+  );
+
+  if (!targetSheet) {
+    throw new Error(`Spreadsheet does not contain a sheet named "${config.sheetName}"`);
+  }
+
+  return data;
 }

@@ -22,6 +22,7 @@ let config = {
   apiCooldown: 20000,  // Cooldown in ms between API batches
   csrfToken: '',
   pageInstance: '',
+  sheetId: '', // Optional Google Sheet ID
 };
 
 // Track processed jobs to avoid duplicates
@@ -44,6 +45,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     isRunning = true;
     if (message.apiKey) {
       config.openaiApiKey = message.apiKey;
+    }
+    if (message.sheetId) {
+      config.sheetId = message.sheetId;
     }
     startScraping();
     sendResponse({ success: true });
@@ -70,7 +74,7 @@ function getCookieValueByName(name) {
 // Load configuration from storage
 async function loadConfig() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance'], (result) => {
+    chrome.storage.local.get(['jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance', 'sheetId'], (result) => {
       if (result.jobRole) {
         config.includeKeywords = result.jobRole.split(',').map(keyword => keyword.trim());
       }
@@ -92,6 +96,10 @@ async function loadConfig() {
         config.pageInstance = result.pageInstance;
       }
 
+      if (result.sheetId) {
+        config.sheetId = result.sheetId;
+      }
+
       resolve();
     });
   });
@@ -101,7 +109,10 @@ async function loadConfig() {
 async function startScraping() {
   try {
     // Only reset matched jobs at the beginning of the entire scraping process
-    chrome.runtime.sendMessage({ action: 'resetMatchedJobs' }, response => {
+    chrome.runtime.sendMessage({
+      action: 'resetMatchedJobs',
+      sheetId: config.sheetId
+    }, response => {
       if (!response?.sheetId) {
         showNotification(`Failed to create Google Sheet: Missing Google Sheet ID. Please try again.`);
         isRunning = false;
