@@ -15,6 +15,49 @@ document.addEventListener('DOMContentLoaded', () => {
   const googleIconElement = document.getElementById('googleIcon');
   const formFieldsElement = document.getElementById('formFields');
 
+  // Debounce function to limit how often the save operation runs
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Function to save a single field to storage
+  const saveField = (key, value) => {
+    chrome.storage.local.set({ [key]: value }, () => {
+      if (chrome.runtime.lastError) {
+        console.error(`Error saving ${key}:`, chrome.runtime.lastError);
+      }
+    });
+  };
+
+  // Debounced version of saveField that waits 500ms after the last call
+  const debouncedSave = debounce(saveField, 500);
+
+  // Add input event listeners to all input fields
+  const inputFields = {
+    'openaiApiKey': apiKeyInput,
+    'jobRole': jobRoleInput,
+    'jobLocation': jobLocationInput,
+    'maxJobs': maxJobsInput,
+    'maxPages': maxPagesInput,
+    'pageInstance': pageInstanceInput
+  };
+
+  // Add input event listeners for real-time saving
+  Object.entries(inputFields).forEach(([key, element]) => {
+    element.addEventListener('input', (e) => {
+      const value = e.target.value.trim();
+      debouncedSave(key, value);
+    });
+  });
+
   // Check Google authentication status
   checkAuthStatus();
 
