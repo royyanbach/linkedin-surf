@@ -14,25 +14,30 @@
 <body>
 
   <header class="hero">
-    <div class="container">
-      <h1>Stop Wasting Time on LinkedIn Job Searches</h1>
-      <p>Linkedin Surf automatically filters relevant jobs, removes duplicates, and exports them to Google Sheets,
-        powered by AI.</p>
-      <a href="https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID" class="cta-button" target="_blank"
-        rel="noopener noreferrer">Get Linkedin Surf on Chrome Web Store</a>
-      <p class="version-info">Works with LinkedIn job search pages.</p>
+    <div class="container hero-container">
+      <div class="hero-text">
+        <h1>Stop Wasting Time on LinkedIn Job Searches</h1>
+        <p>Linkedin Surf automatically filters relevant jobs, removes duplicates, and exports them to Google Sheets,
+          powered by AI.</p>
+        <div class="hero-buttons">
+          <a href="https://chrome.google.com/webstore/detail/mcknelgkhpldjlihhpohfjapgdfmodjk" class="cta-button" target="_blank"
+            rel="noopener noreferrer">Get Linkedin Surf on Chrome Web Store</a>
+          <a href="https://github.com/royyanbach/linkedin-surf" class="cta-button secondary" target="_blank"
+            rel="noopener noreferrer">View on GitHub</a>
+        </div>
+      </div>
+      <div class="hero-video">
+        <video controls poster="popup.jpg">
+          <source src="recording.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
     </div>
   </header>
 
   <section id="how-to-use" class="how-to-use">
     <div class="container">
       <h2>How It Works</h2>
-      <div class="howto-video-wrapper">
-        <video controls poster="popup.jpg" style="max-width:100%;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-          <source src="recording.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      </div>
       <ol class="steps">
         <li>
           <h3>1. Install the Extension</h3>
@@ -45,7 +50,6 @@
         <li>
           <h3>3. Activate the Extension</h3>
           <p>Click the Linkedin Surf icon in your toolbar, enter your preferences & OpenAI API key.</p>
-          <!-- Consider adding an image/screenshot here -->
           <img src="popup.jpg" alt="Extension Popup" class="screenshot">
         </li>
         <li>
@@ -56,64 +60,121 @@
           <h3>5. Get Your Results</h3>
           <p>The extension scrolls, filters, and removes duplicates. A Google Sheet with relevant jobs opens
             automatically.</p>
-          <!-- Consider adding an image/screenshot here -->
           <img src="generated-csv.jpg" alt="Generated Spreadsheet" class="screenshot">
         </li>
       </ol>
     </div>
   </section>
 
-  <section id="privacy-policy" class="privacy-policy">
+  <section id="privacy-policy" class="privacy-policy collapsible-section">
     <div class="container">
-        <h2>Privacy Policy</h2>
-        <p><em>Last updated: 15 April 2025</em></p>
-        <p>Thank you for choosing to use LinkedIn Surf (“Extension”). This Privacy Policy describes what, if any, personal data is collected, how data is processed, and your choices regarding your information when you use our Extension.</p>
+        <button class="collapsible-toggle" aria-expanded="false">
+          <h2>Privacy Policy</h2>
+          <span class="toggle-icon">+</span>
+        </button>
+        <div class="collapsible-content">
+            <p><em>Last updated: 15 April 2025</em></p>
+            <p>Thank you for choosing to use LinkedIn Surf (“Extension”). This Privacy Policy describes what, if any, personal data is collected, how data is processed, and your choices regarding your information when you use our Extension.</p>
 
-        <h3>1. Data Collection</h3>
-        <h4>No Personal Data Collected</h4>
-        <p>LinkedIn Surf is designed to assist you in filtering and exporting job listings from LinkedIn. We do not collect, store, or transmit any personal data or personally identifiable information (PII) from you.</p>
-        <h4>Local Data Storage</h4>
-        <p>Any data stored by the Extension (such as user preferences or temporary job listing data) is saved locally on your device using Chrome's built-in storage.</p>
-        <p>This data is used solely to improve your experience while using the Extension and is not sent to any external servers.</p>
+            <h3>1. Data Collection</h3>
+            <h4>No Personal Data Collected</h4>
+            <p>LinkedIn Surf is designed to assist you in filtering and exporting job listings from LinkedIn. We do not collect, store, or transmit any personal data or personally identifiable information (PII) from you.</p>
+            <h4>Local Data Storage</h4>
+            <p>Any data stored by the Extension (such as user preferences or temporary job listing data) is saved locally on your device using Chrome's built-in storage.</p>
+            <p>This data is used solely to improve your experience while using the Extension and is not sent to any external servers.</p>
 
-        <h3>2. How We Use Data</h3>
-        <h4>Local Processing Only</h4>
-        <p>All job listing data is gathered from your active LinkedIn session. This data is processed locally in your browser to filter and export job listings.</p>
-        <p>No job or personal data is transmitted to any third-party servers or used for any other purpose than to provide the Extension's intended functionality.</p>
-        <h4>OAuth2 for Google Sheets Integration</h4>
-        <p>The Extension uses OAuth2 authentication to interact with the Google Sheets API for exporting job results.</p>
-        <p>The OAuth2 tokens are used only to enable the export functionality, and any data shared with Google is solely that which you choose to export.</p>
-        <p>We do not save or store your Google account information beyond what is required for authorization during the export process.</p>
+            <h3>2. How We Use Data</h3>
+            <h4>Local Processing Only</h4>
+            <p>All job listing data is gathered from your active LinkedIn session. This data is processed locally in your browser to filter and export job listings.</p>
+            <p>No job or personal data is transmitted to any third-party servers or used for any other purpose than to provide the Extension's intended functionality.</p>
+            <h4>OAuth2 for Google Sheets Integration</h4>
+            <p>The Extension uses OAuth2 authentication to interact with the Google Sheets API for exporting job results.</p>
+            <p>The OAuth2 tokens are used only to enable the export functionality, and any data shared with Google is solely that which you choose to export.</p>
+            <p>We do not save or store your Google account information beyond what is required for authorization during the export process.</p>
 
-        <h3>3. Data Sharing and Third-Party Services</h3>
-        <h4>No Third-Party Sharing</h4>
-        <p>We do not sell, trade, or otherwise share any of your data.</p>
-        <p>The Extension does not send any personal or job-related data to our servers or any other external parties.</p>
-        <h4>Third-Party Services</h4>
-        <p>The only third-party service integrated with the Extension is Google Sheets, through its API.</p>
-        <p>Any data access by Google Sheets is governed by Google's own Privacy Policy. Please refer to Google's Privacy Policy for more details.</p>
+            <h3>3. Data Sharing and Third-Party Services</h3>
+            <h4>No Third-Party Sharing</h4>
+            <p>We do not sell, trade, or otherwise share any of your data.</p>
+            <p>The Extension does not send any personal or job-related data to our servers or any other external parties.</p>
+            <h4>Third-Party Services</h4>
+            <p>The only third-party service integrated with the Extension is Google Sheets, through its API.</p>
+            <p>Any data access by Google Sheets is governed by Google's own Privacy Policy. Please refer to Google's Privacy Policy for more details.</p>
 
-        <h3>4. Security</h3>
-        <h4>Local-Only Data Processing</h4>
-        <p>All data processing is performed locally within your browser environment.</p>
-        <p>We use Chrome's secure storage and adhere to best practices for local data management.</p>
-        <p>As no data is transmitted or stored externally, there is minimal risk of data exposure from our side.</p>
+            <h3>4. Security</h3>
+            <h4>Local-Only Data Processing</h4>
+            <p>All data processing is performed locally within your browser environment.</p>
+            <p>We use Chrome's secure storage and adhere to best practices for local data management.</p>
+            <p>As no data is transmitted or stored externally, there is minimal risk of data exposure from our side.</p>
 
-        <h3>5. Your Rights and Choices</h3>
-        <h4>No Data, No Concerns</h4>
-        <p>Since no personal data is collected or stored by the Extension, there are no privacy settings or opt-out choices required for our service.</p>
-        <p>You can uninstall the Extension at any time. This will remove any locally stored data associated with the Extension from your browser.</p>
+            <h3>5. Your Rights and Choices</h3>
+            <h4>No Data, No Concerns</h4>
+            <p>Since no personal data is collected or stored by the Extension, there are no privacy settings or opt-out choices required for our service.</p>
+            <p>You can uninstall the Extension at any time. This will remove any locally stored data associated with the Extension from your browser.</p>
 
-        <h3>6. Changes to This Privacy Policy</h3>
-        <p>We may update our Privacy Policy from time to time. You will be notified of any significant changes via an updated policy posted on our landing page. Please check back periodically for any updates.</p>
+            <h3>6. Changes to This Privacy Policy</h3>
+            <p>We may update our Privacy Policy from time to time. You will be notified of any significant changes via an updated policy posted on our landing page. Please check back periodically for any updates.</p>
 
-        <h3>7. Contact Us</h3>
-        <p>If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:</p>
-        <ul>
-            <li>Email: <a href="mailto:hello@royyanba.ch">hello@royyanba.ch</a></li>
-            <li>Website: <a href="https://www.royyanba.ch" target="_blank" rel="noopener noreferrer">https://www.royyanba.ch</a></li>
-        </ul>
+            <h3>7. Contact Us</h3>
+            <p>If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:</p>
+            <ul>
+                <li>Email: <a href="mailto:hello@royyanba.ch">hello@royyanba.ch</a></li>
+                <li>Website: <a href="https://www.royyanba.ch" target="_blank" rel="noopener noreferrer">https://www.royyanba.ch</a></li>
+            </ul>
+        </div>
     </div>
+  </section>
+
+  <section id="faq" class="faq">
+      <div class="container">
+          <h2>Frequently Asked Questions</h2>
+          <div class="accordion">
+              <div class="accordion-item">
+                  <button class="accordion-header" aria-expanded="false">
+                      <span>Is Linkedin Surf free to use?</span>
+                      <span class="toggle-icon">+</span>
+                  </button>
+                  <div class="accordion-content">
+                      <p>Yes, the core features of Linkedin Surf are free. The AI-powered filtering requires an OpenAI API key, which may have associated costs depending on your usage with OpenAI.</p>
+                  </div>
+              </div>
+              <div class="accordion-item">
+                  <button class="accordion-header" aria-expanded="false">
+                      <span>Do I need a Google account?</span>
+                      <span class="toggle-icon">+</span>
+                  </button>
+                  <div class="accordion-content">
+                      <p>Yes, a Google account is required to export the filtered job list directly to Google Sheets. You will need to authorize the extension to access your Google Sheets.</p>
+                  </div>
+              </div>
+              <div class="accordion-item">
+                <button class="accordion-header" aria-expanded="false">
+                    <span>Where do I get my OpenAI API key?</span>
+                    <span class="toggle-icon">+</span>
+                </button>
+                <div class="accordion-content">
+                    <p>You can get your OpenAI API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">https://platform.openai.com/api-keys</a>.</p>
+                </div>
+            </div>
+              <div class="accordion-item">
+                  <button class="accordion-header" aria-expanded="false">
+                      <span>Is my data safe?</span>
+                      <span class="toggle-icon">+</span>
+                  </button>
+                  <div class="accordion-content">
+                      <p>Absolutely. Linkedin Surf processes all job data locally within your browser. No personal data or job listing information is sent to our servers. Your OpenAI API key and Google authorization tokens are stored securely by Chrome. See our Privacy Policy section for more details.</p>
+                  </div>
+              </div>
+               <div class="accordion-item">
+                  <button class="accordion-header" aria-expanded="false">
+                      <span>What if LinkedIn changes its layout?</span>
+                      <span class="toggle-icon">+</span>
+                  </button>
+                  <div class="accordion-content">
+                      <p>We strive to keep the extension updated. However, significant changes to LinkedIn's website structure might temporarily affect the extension's functionality. Please report any issues on our GitHub repository.</p>
+                  </div>
+              </div>
+          </div>
+      </div>
   </section>
 
   <footer>
@@ -122,6 +183,7 @@
     </div>
   </footer>
 
+  <script src="script.js"></script>
 </body>
 
 </html>
