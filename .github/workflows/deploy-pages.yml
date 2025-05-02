@@ -30,6 +30,7 @@ jobs:
           cp style.css _site/style.css
           cp popup.jpg _site/popup.jpg || echo "popup.jpg not found, skipping."
           cp generated-csv.jpg _site/generated-csv.jpg || echo "generated-csv.jpg not found, skipping."
+          cp recording.mp4 _site/recording.mp4 || echo "recording.mp4 not found, skipping."
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
