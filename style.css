@@ -256,3 +256,31 @@ footer a {
     margin-bottom: 20px;
   }
 }
+
+img, video {
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+}
+
+video {
+  max-height: 500px;
+}
+
+.howto-video-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+.howto-video-wrapper video {
+  max-width: 700px;
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  background: #000;
+}
+
+/* Section separation */
+section + section {
+  margin-top: 48px;
+}
