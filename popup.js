@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const jobLocationInput = document.getElementById('jobLocation');
   const maxJobsInput = document.getElementById('maxJobs');
   const maxPagesInput = document.getElementById('maxPages');
-  const pageInstanceInput = document.getElementById('pageInstance');
   const sheetIdInput = document.getElementById('sheetId');
   const footerElement = document.querySelector('footer');
   const statusElement = document.getElementById('status') || createStatusElement();
@@ -48,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'jobLocation': jobLocationInput,
     'maxJobs': maxJobsInput,
     'maxPages': maxPagesInput,
-    'pageInstance': pageInstanceInput,
     'sheetId': sheetIdInput
   };
 
@@ -167,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const jobLocation = jobLocationInput.value.trim();
     const maxJobs = parseInt(maxJobsInput.value, 10) || 25;
     const maxPages = parseInt(maxPagesInput.value, 10) || 3;
-    const pageInstance = pageInstanceInput.value.trim();
     const sheetId = sheetIdInput.value.trim();
 
     if (!apiKey) {
@@ -178,12 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save settings to Chrome storage
     chrome.storage.local.set({
       openaiApiKey: apiKey,
-      jobRole: jobRole,
-      jobLocation: jobLocation,
-      maxJobs: maxJobs,
-      maxPages: maxPages,
-      pageInstance: pageInstance,
-      sheetId: sheetId
+      jobRole,
+      jobLocation,
+      maxJobs,
+      maxPages,
+      sheetId
     }, () => {
       startButton.disabled = true;
       buttonTextElement.textContent = 'Processing...';
@@ -238,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
         jobLocation: jobLocationInput.value.trim(),
         maxJobs: parseInt(maxJobsInput.value, 10) || 25,
         maxPages: parseInt(maxPagesInput.value, 10) || 3,
-        pageInstance: pageInstanceInput.value.trim(),
         sheetId: sheetIdInput.value.trim()
       }, (response) => {
         if (chrome.runtime.lastError) {
@@ -261,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load saved values if available
-  chrome.storage.local.get(['openaiApiKey', 'jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance', 'sheetId'], (result) => {
+  chrome.storage.local.get(['openaiApiKey', 'jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'sheetId'], (result) => {
     if (result.openaiApiKey) {
       apiKeyInput.value = result.openaiApiKey;
     }
@@ -276,9 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (result.maxPages) {
       maxPagesInput.value = result.maxPages;
-    }
-    if (result.pageInstance) {
-      pageInstanceInput.value = result.pageInstance;
     }
     if (result.sheetId) {
       sheetIdInput.value = result.sheetId;

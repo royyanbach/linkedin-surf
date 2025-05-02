@@ -21,7 +21,6 @@ let config = {
   apiTokensPerMinute: 1000000,  // Max tokens per minute to avoid overloading
   apiCooldown: 20000,  // Cooldown in ms between API batches
   csrfToken: '',
-  pageInstance: '',
   sheetId: '', // Optional Google Sheet ID
 };
 
@@ -74,7 +73,7 @@ function getCookieValueByName(name) {
 // Load configuration from storage
 async function loadConfig() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'pageInstance', 'sheetId'], (result) => {
+    chrome.storage.local.get(['jobRole', 'jobLocation', 'maxJobs', 'maxPages', 'sheetId'], (result) => {
       if (result.jobRole) {
         config.includeKeywords = result.jobRole.split(',').map(keyword => keyword.trim());
       }
@@ -90,10 +89,6 @@ async function loadConfig() {
 
       if (result.maxPages) {
         config.maxPages = parseInt(result.maxPages, 10) || 3;
-      }
-
-      if (result.pageInstance) {
-        config.pageInstance = result.pageInstance;
       }
 
       if (result.sheetId) {
@@ -458,7 +453,7 @@ async function manageRateLimit() {
 async function getJobDetail(jobId) {
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
   try {
-    if (!config.pageInstance || !config.csrfToken) {
+    if (!config.csrfToken) {
       console.error('Page instance or CSRF token not found');
       return;
     }
@@ -475,7 +470,6 @@ async function getJobDetail(jobId) {
         pragma: 'no-cache',
         priority: 'u=1, i',
         'x-li-lang': 'en_US',
-        'x-li-page-instance': config.pageInstance,
         'x-li-pem-metadata': 'Voyager - Careers - Job Details=job-posting',
         'x-li-track': '{"clientVersion":"1.13.33754","mpVersion":"1.13.33754","osName":"web","timezoneOffset":7,"timezone":"Asia/Jakarta","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":1,"displayWidth":3440,"displayHeight":1440}',
         'x-restli-protocol-version': '2.0.0'
