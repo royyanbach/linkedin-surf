@@ -31,6 +31,8 @@ jobs:
           cp popup.jpg _site/popup.jpg || echo "popup.jpg not found, skipping."
           cp generated-csv.jpg _site/generated-csv.jpg || echo "generated-csv.jpg not found, skipping."
           cp recording.mp4 _site/recording.mp4 || echo "recording.mp4 not found, skipping."
+          cp icon32.png _site/icon32.png || echo "icon32.png not found, skipping."
+          cp favicon.ico _site/favicon.ico || echo "favicon.ico not found, skipping."
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

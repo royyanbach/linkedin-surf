@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Linkedin Surf",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Automates job search on LinkedIn by filtering and exporting results to Google Sheets",
   "permissions": ["activeTab", "storage", "identity"],
   "host_permissions": [

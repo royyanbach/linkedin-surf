@@ -1,6 +1,6 @@
 {
   "name": "linkedin-surf",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "LinkedIn job search automation using OpenAI API and Google Sheets",
   "author": "Royyan Bachtiar",
   "license": "MIT",
