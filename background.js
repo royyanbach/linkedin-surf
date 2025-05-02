@@ -188,7 +188,6 @@ async function createNewSheet() {
     title: 'Title',
     company: 'Company',
     location: 'Location',
-    id: 'Job ID',
     originalPostedAt: 'Original Posted Time',
     lastPostedAt: 'Posted Time',
     estimateTotalApplicants: 'Applicants',
@@ -216,7 +215,6 @@ async function appendToSheet(job, sheetId = null) {
         job.title,
         job.company,
         job.location,
-        job.id,
         job.originalPostedAt,
         job.lastPostedAt,
         job.estimateTotalApplicants,
@@ -224,13 +222,16 @@ async function appendToSheet(job, sheetId = null) {
       ]
     ];
   } else {
+    // Format job title as a hyperlink when not a header
+    const linkedinJobUrl = `https://www.linkedin.com/jobs/view/${job.id}`;
+    const titleWithLink = `=HYPERLINK("${linkedinJobUrl}", "${job.title.replace(/"/g, '""')}")`;
+
     // Format job data for sheet
     values = [
       [
-        job.title,
+        titleWithLink,
         job.company,
         job.location,
-        job.id,
         job.originalPostedAt || '',
         job.lastPostedAt || '',
         job.estimateTotalApplicants || '',
