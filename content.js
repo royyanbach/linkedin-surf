@@ -121,6 +121,14 @@ async function startScraping() {
         return;
       }
 
+      if (response.existingJobIds && Array.isArray(response.existingJobIds)) {
+        processedJobIds = new Set(response.existingJobIds);
+        console.log(`Loaded ${processedJobIds.size} existing job IDs from sheet`);
+        if (processedJobIds.size > 0) {
+          showNotification(`Loaded ${processedJobIds.size} existing job IDs. Will skip these jobs.`);
+        }
+      }
+
       // Continue with scraping if sheet was created successfully
       continueWithScraping(response.sheetId);
     });
@@ -139,7 +147,6 @@ async function continueWithScraping(sheetId = null) {
     config.csrfToken = getCookieValueByName('JSESSIONID');
 
     // Reset data
-    processedJobIds = new Set();
     jobsProcessedCount = 0;
     jobsMatchedCount = 0;
     duplicateCount = 0;
@@ -156,7 +163,6 @@ async function continueWithScraping(sheetId = null) {
 
     while (isRunning && continueToNextPage && currentPage <= config.maxPages && !userStopped) { // Check isRunning flag
       // showNotification(`Processing page ${currentPage} of ${config.maxPages}`);
-      updateOverlayStats(currentPage, config.maxPages, jobsProcessedCount, jobsMatchedCount, duplicateCount); // Update overlay stats
 
       // Get all job cards on the page
       // await scrollToLoadAllJobsSimple();
@@ -181,6 +187,8 @@ async function continueWithScraping(sheetId = null) {
       if (isFirstPage) {
         isFirstPage = false;
       }
+
+      updateOverlayStats(currentPage, config.maxPages, jobsProcessedCount, jobsMatchedCount, duplicateCount);
 
       // Check if we should go to the next page
       if (isRunning && currentPage < config.maxPages) { // Check isRunning flag
@@ -376,8 +384,9 @@ async function processJobCards(jobCards, currentPage) { // Accept currentPage
       const url = linkElement.getAttribute('href');
       const jobId = jobCard.dataset.occludableJobId;
 
-      // Avoid duplicates
+      // Avoid duplicates within current scraping session
       if (processedJobIds.has(jobId) || !isRunning) { // Check isRunning flag
+        console.log(`Skipping job ${jobId} (${title}) as it already exists in the sheet`);
         duplicateCount++;
         continue;
       }

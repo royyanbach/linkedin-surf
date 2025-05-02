@@ -35,14 +35,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       // Check if the sheet exists and we have access to it
       verifySheetAccess(message.sheetId).then(() => {
-        // Skip adding header row for existing sheets
-        sendResponse({ success: true, sheetId: message.sheetId });
+        // Get existing job IDs to avoid duplicates
+        getExistingJobIds(message.sheetId).then(existingIds => {
+          // Convert the Set to Array for serialization
+          const existingIdsArray = Array.from(existingIds);
+          sendResponse({
+            success: true,
+            sheetId: message.sheetId,
+            existingJobIds: existingIdsArray
+          });
+        }).catch(error => {
+          console.error('Failed to get existing job IDs:', error);
+          sendResponse({
+            success: true,
+            sheetId: message.sheetId,
+            existingJobIds: []
+          });
+        });
       }).catch(error => {
         console.error('Failed to verify sheet access:', error);
         // If verification fails, create a new sheet
         createNewSheet().then(sheetId => {
           config.sheetId = sheetId;
-          sendResponse({ success: true, sheetId });
+          sendResponse({
+            success: true,
+            sheetId,
+            existingJobIds: [] // New sheet, no existing IDs
+          });
         }).catch(createError => {
           sendResponse({ success: false, error: createError.message });
         });
@@ -51,7 +70,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Create a new Google Sheet for this session
       createNewSheet().then(sheetId => {
         config.sheetId = sheetId;
-        sendResponse({ success: true, sheetId });
+        sendResponse({
+          success: true,
+          sheetId,
+          existingJobIds: [] // New sheet, no existing IDs
+        });
       }).catch(error => {
         console.error('Failed to create sheet:', error);
         sendResponse({ success: false, error: error.message });
@@ -188,6 +211,7 @@ async function createNewSheet() {
     title: 'Title',
     company: 'Company',
     location: 'Location',
+    id: 'Job ID',
     originalPostedAt: 'Original Posted Time',
     lastPostedAt: 'Posted Time',
     estimateTotalApplicants: 'Applicants',
@@ -212,6 +236,7 @@ async function appendToSheet(job, sheetId = null) {
     // This is a header row
     values = [
       [
+        job.id,
         job.title,
         job.company,
         job.location,
@@ -229,6 +254,7 @@ async function appendToSheet(job, sheetId = null) {
     // Format job data for sheet
     values = [
       [
+        job.id,
         titleWithLink,
         job.company,
         job.location,
@@ -296,4 +322,49 @@ async function verifySheetAccess(sheetId) {
   }
 
   return data;
+}
+
+// Get existing job IDs from the spreadsheet to avoid duplicates
+async function getExistingJobIds(sheetId) {
+  const token = await authenticateWithGoogle();
+
+  try {
+    // Get only the first column (job IDs) to minimize data transfer
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${config.sheetName}!A:A`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Failed to get existing job IDs:', error);
+      return new Set(); // Return empty set on error
+    }
+
+    const data = await response.json();
+    if (!data.values || data.values.length <= 1) {
+      // No data or only header row
+      return new Set();
+    }
+
+    // Extract job IDs, skip the header row
+    const jobIds = new Set();
+    for (let i = 1; i < data.values.length; i++) {
+      const row = data.values[i];
+      if (row && row[0] && row[0].toString().trim()) {
+        jobIds.add(row[0].toString().trim());
+      }
+    }
+
+    console.log(`Found ${jobIds.size} existing job IDs in sheet`);
+    return jobIds;
+  } catch (error) {
+    console.error('Error fetching existing job IDs:', error);
+    return new Set(); // Return empty set on error
+  }
 }
