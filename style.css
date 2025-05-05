@@ -38,75 +38,74 @@ a:hover {
 
 /* Hero Section - Updated for 2-column layout */
 .hero {
-  background: linear-gradient(100deg, #e0c3fc 0%, #8ec5fc 100%); /* Lighter gradient */
-  color: #333; /* Darker text for better contrast on light background */
-  padding: 80px 0; /* More padding */
+  background: linear-gradient(100deg, #e0c3fc 0%, #8ec5fc 100%);
+  color: #333;
+  padding: 80px 0;
   display: flex;
   align-items: center;
-  min-height: 80vh; /* Taller hero section */
+  min-height: 80vh;
 }
 
 .hero-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 5%; /* Use percentage gap for better scaling */
-  width: 100%; /* Ensure it takes full width of the parent flex container */
-  max-width: 1200px; /* Allow wider container for hero */
-  margin: 0 auto; /* Center the container */
-  padding: 0 40px; /* Add some horizontal padding */
+  gap: 5%;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
 }
 
 .hero-text {
-  flex: 1 1 50%; /* Grow, shrink, base width 50% */
+  flex: 1 1 50%;
   min-width: 300px;
   text-align: left;
-  padding-right: 20px; /* Add some space between text and video */
+  padding-right: 20px;
 }
 
 .hero-video {
-  flex: 1 1 45%; /* Grow, shrink, base width 45% */
+  flex: 1 1 45%;
   min-width: 300px;
-  max-width: 600px; /* Allow video to be a bit larger */
-  display: flex; /* Use flex to center video if needed */
+  max-width: 600px;
+  display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .hero-video video {
-  width: 100%; /* Make video responsive */
-  border-radius: 12px; /* Rounded corners */
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Softer shadow */
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .hero h1 {
-  font-size: 2.8rem; /* Slightly larger */
+  font-size: 2.8rem;
   font-weight: 700;
   margin-bottom: 20px;
-  color: #2c3e50; /* Dark blue color */
+  color: #2c3e50;
   line-height: 1.2;
 }
 
 .hero p {
-  font-size: 1.15rem; /* Slightly larger paragraph */
+  font-size: 1.15rem;
   margin-bottom: 30px;
-  color: #34495e; /* Slightly lighter dark blue */
-  max-width: 550px; /* Limit text width */
+  color: #34495e;
+  max-width: 550px;
 }
 
 /* Button Container */
 .hero-buttons {
-    display: flex;
-    flex-wrap: wrap; /* Allow buttons to wrap */
-    gap: 15px; /* Space between buttons */
-    margin-top: 30px; /* Space above buttons */
-    align-items: center; /* Align items vertically */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 30px;
+  align-items: center;
 }
 
 .cta-button {
   display: inline-block;
   background-color: #ffc107;
-  /* Yellow accent */
   color: #333;
   padding: 12px 25px;
   border-radius: 5px;
@@ -122,15 +121,15 @@ a:hover {
 }
 
 .cta-button.secondary {
-    background-color: transparent;
-    color: #34495e;
-    background-color: rgba(54, 62, 78, 0.1);
+  background-color: transparent;
+  color: #34495e;
+  background-color: rgba(54, 62, 78, 0.1);
 }
 
 .cta-button.secondary:hover {
-    background-color: rgba(6, 22, 55, 0.8);
-    border-color: #34495e;
-    color: #fff;
+  background-color: rgba(6, 22, 55, 0.8);
+  border-color: #34495e;
+  color: #fff;
 }
 
 /* How To Use Section */
@@ -157,7 +156,6 @@ a:hover {
   margin-bottom: 30px;
   position: relative;
   padding-left: 50px;
-  /* Space for counter */
 }
 
 .steps li::before {
@@ -201,48 +199,48 @@ a:hover {
 
 /* Privacy Policy Section */
 .privacy-policy {
-    padding: 60px 0;
-    background-color: #f8f9fa; /* Slightly different background */
+  padding: 60px 0;
+  background-color: #f8f9fa;
 }
 
 .privacy-policy h2 {
-    text-align: center;
-    margin-bottom: 40px;
-    font-size: 2rem;
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 2rem;
 }
 
 .privacy-policy .container {
-    max-width: 800px; /* Slightly narrower for text content */
+  max-width: 800px;
 }
 
 .privacy-policy h3 {
-    font-size: 1.5rem;
-    margin-top: 30px;
-    margin-bottom: 15px;
-    color: #343a40;
+  font-size: 1.5rem;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  color: #343a40;
 }
 
 .privacy-policy h4 {
-    font-size: 1.2rem;
-    margin-top: 20px;
-    margin-bottom: 10px;
-    font-weight: 600;
-    color: #495057;
+  font-size: 1.2rem;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #495057;
 }
 
 .privacy-policy p,
 .privacy-policy ul {
-    color: #555;
-    margin-bottom: 15px;
+  color: #555;
+  margin-bottom: 15px;
 }
 
 .privacy-policy ul {
-    list-style: disc;
-    padding-left: 20px;
+  list-style: disc;
+  padding-left: 20px;
 }
 
 .privacy-policy li {
-    margin-bottom: 5px;
+  margin-bottom: 5px;
 }
 
 /* Footer */
@@ -265,26 +263,30 @@ footer a {
 /* Responsive adjustments */
 @media (max-width: 850px) {
   .hero {
-    padding: 60px 20px; /* Adjust padding */
-    min-height: auto; /* Adjust height */
-    text-align: center; /* Center text on smaller screens */
+    padding: 60px 20px;
+    min-height: auto;
+    text-align: center;
   }
+
   .hero-container {
-    flex-direction: column; /* Stack columns */
-    gap: 40px; /* Keep vertical gap */
-    padding: 0 20px; /* Adjust padding */
+    flex-direction: column;
+    gap: 40px;
+    padding: 0 20px;
   }
+
   .hero-text {
-    text-align: center; /* Center text */
-    order: 1; /* Text below video */
+    text-align: center;
+    order: 1;
   }
+
   .hero-video {
-    order: 1; /* Video above text */
-    flex-basis: auto; /* Reset basis */
-    width: 100%; /* Use full width */
-    max-width: 500px; /* Limit max width */
-    padding-right: 0; /* Remove padding */
+    order: 1;
+    flex-basis: auto;
+    width: 100%;
+    max-width: 500px;
+    padding-right: 0;
   }
+
   .hero h1 {
     font-size: 2.2rem;
   }
@@ -302,7 +304,6 @@ footer a {
 
   .steps li {
     padding-left: 45px;
-    /* Adjust padding for smaller counter */
   }
 
   .steps li::before {
@@ -311,17 +312,9 @@ footer a {
     font-size: 1rem;
   }
 
-  /* Adjust button spacing for stacked layout */
   .hero-buttons {
     justify-content: center;
   }
-  /* Adjust button spacing for stacked layout (remove if gap is sufficient) */
-  /* .cta-button {
-    margin-bottom: 10px;
-  }
-  .cta-button.secondary {
-    margin-left: 0;
-  } */
 }
 
 @media (max-width: 480px) {
@@ -338,7 +331,8 @@ footer a {
   }
 }
 
-img, video {
+img,
+video {
   max-width: 100%;
   display: block;
   margin: 0 auto;
@@ -349,134 +343,130 @@ video {
 }
 
 /* Section separation */
-section + section {
+section+section {
   margin-top: 48px;
 }
 
 /* Collapsible Section Styles (Privacy Policy) */
 .collapsible-section .collapsible-toggle {
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    border-bottom: 1px solid #eee; /* Separator line */
-    padding-bottom: 15px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
 }
 
 .collapsible-section h2 {
-    margin-bottom: 0; /* Remove bottom margin from h2 inside button */
+  margin-bottom: 0;
 }
 
 .collapsible-section .toggle-icon {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #007bff;
-    transition: transform 0.3s ease;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #007bff;
+  transition: transform 0.3s ease;
 }
 
 .collapsible-section .collapsible-toggle[aria-expanded="true"] .toggle-icon {
-    transform: rotate(45deg);
+  transform: rotate(45deg);
 }
 
 .collapsible-section .collapsible-content {
-    max-height: 0;
-    overflow: hidden;
-    /* transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s cubic-bezier(0.4, 0, 0.2, 1); */
-    transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
-    padding-top: 0;
-    padding-bottom: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
-.collapsible-section .collapsible-toggle[aria-expanded="true"] + .collapsible-content {
-    max-height: 2000px; /* Set a large enough max-height */
-    padding-top: 20px;
-    padding-bottom: 20px;
-    /* The transition is defined on the base class, so it applies here too */
+.collapsible-section .collapsible-toggle[aria-expanded="true"]+.collapsible-content {
+  max-height: 100%;
+  padding-top: 20px;
+  padding-bottom: 20px;
 }
 
 
 /* FAQ Section & Accordion Styles */
 .faq {
-    padding: 60px 0;
-    background-color: #fff; /* White background for FAQ */
+  padding: 60px 0;
+  background-color: #fff;
 }
 
 .faq h2 {
-    text-align: center;
-    margin-bottom: 40px;
-    font-size: 2rem;
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 2rem;
 }
 
 .accordion {
-    max-width: 800px;
-    margin: 0 auto;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden; /* Clip borders */
+  max-width: 800px;
+  margin: 0 auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  /* Clip borders */
 }
 
 .accordion-item {
-    border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
 }
 
 .accordion-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .accordion-header {
-    background-color: #f8f9fa;
-    border: none;
-    padding: 15px 20px;
-    width: 100%;
-    text-align: left;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: background-color 0.3s ease;
+  background-color: #f8f9fa;
+  border: none;
+  padding: 15px 20px;
+  width: 100%;
+  text-align: left;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.3s ease;
 }
 
 .accordion-header:hover {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 .accordion-header .toggle-icon {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #007bff;
-    transition: transform 0.3s ease;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #007bff;
+  transition: transform 0.3s ease;
 }
 
 .accordion-header[aria-expanded="true"] .toggle-icon {
-    transform: rotate(45deg);
+  transform: rotate(45deg);
 }
 
 .accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    /* transition: max-height 0.4s ease-out, padding 0.4s ease-out; */
-    /* Use a slightly faster duration for the accordion */
-    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
-    padding: 0 20px;
-    background-color: #fff;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+  padding: 0 20px;
+  background-color: #fff;
 }
 
-.accordion-header[aria-expanded="true"] + .accordion-content {
-    max-height: 500px; /* Adjust as needed for content length */
-    padding: 20px;
-    /* The transition is defined on the base class, so it applies here too */
+.accordion-header[aria-expanded="true"]+.accordion-content {
+  max-height: 500px;
+  padding: 20px;
 }
 
 .accordion-content p {
-    margin-bottom: 10px;
-    color: #555;
+  margin-bottom: 10px;
+  color: #555;
 }
